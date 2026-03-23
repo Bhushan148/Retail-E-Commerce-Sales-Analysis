@@ -1,8 +1,39 @@
 # Retail & E-Commerce Sales Analysis
 
+---
+
 ## Live Report
 
 [View Power BI Report](Add your Power BI report link here)
+
+---
+
+
+## Challenge Context
+
+This project was developed as part of the **Power BI School Dashboard Competition (Dashboard Wars: Season 1)**.
+
+Challenge link:  
+https://www.skool.com/powerbi-school-6896/can-your-dashboard-win-50
+
+The challenge focused on building a business-oriented Power BI dashboard that clearly communicates insights through structured analysis and effective storytelling.
+
+### Challenge Brief
+Design and present a Power BI dashboard that demonstrates the ability to translate raw data into meaningful and actionable insights.
+
+### Submission Guidelines
+- Share dashboard screenshots within the community  
+- Publish the dashboard on LinkedIn using #PowerBISchool  
+
+### Evaluation Criteria
+- Creativity in approach  
+- Clarity of business storytelling  
+- Report design and usability  
+
+### Timeline
+Deadline: 31st March 2026  
+
+This project was designed to align with these requirements by emphasizing clarity, structured analysis, and practical business insights.
 
 ---
 
@@ -187,66 +218,6 @@ This repository includes all components required to understand and reproduce the
 - `/pbix` — Power BI report files  
 - `/dax` — DAX measure definitions  
 - `/reports` — report screenshots  
-
-## Documentation
-
-The `docs/` folder contains detailed documentation covering the full lifecycle of the project, from business understanding to deployment and validation.
-
-- `01-project-overview.md`  
-  Provides a high-level summary of the project, scope, objectives, and overall solution approach.
-
-- `02-business-problem.md`  
-  Defines the business context, reporting challenges, and key analytical requirements addressed by the solution.
-
-- `03-data-model.md`  
-  Explains the star schema design, table relationships, grain definition, and modeling decisions.
-
-- `04-dax-measures.md`  
-  Documents the DAX layer, including KPI definitions, calculation logic, and measure organization.
-
-- `05-report-pages.md`  
-  Walks through each report page, explaining visuals, purpose, and how users interact with the analysis.
-
-- `06-design-and-ux.md`  
-  Covers report layout, visual hierarchy, user experience considerations, and navigation design.
-
-- `07-performance-optimization.md`  
-  Details optimization techniques applied at model, DAX, and report levels to ensure efficient performance.
-
-- `08-security-and-rls.md`  
-  Describes the row-level security (RLS) approach and how user-based data access is handled.
-
-- `09-data-sources.md`  
-  Explains the use of local Excel and Microsoft Fabric as data sources, including setup and transition.
-
-- `10-fabric-etl-transformation.md`  
-  Documents the ETL process performed in Fabric, including data ingestion, transformation, and preparation for reporting.
-
-- `11-deployment-and-refresh.md`  
-  Covers publishing to Power BI Service, dataset configuration, and refresh setup.
-
-- `12-validation-and-testing.md`  
-  Outlines the validation process, including KPI verification, cross-source comparison, and report testing.
-
-- `13-learnings-and-future-enhancements.md`  
-  Summarizes key learnings and identifies potential improvements and extensions to the solution.
-
-- `14-competition-submission.md`  
-  Provides details about the dashboard challenge submission, including approach and positioning.
-
----
-
-## Challenge Context
-
-This project is submitted as part of the Power BI School dashboard challenge.
-
-Challenge link:  
-https://www.skool.com/powerbi-school-6896/can-your-dashboard-win-50
-
-The focus of the submission is on:
-- business storytelling  
-- structured analysis  
-- report usability and clarity  
 
 ---
 
