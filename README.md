@@ -8,7 +8,6 @@
 
 ---
 
-
 ## Challenge Context
 
 This project was developed as part of the **Power BI School Dashboard Competition (Dashboard Wars: Season 1)**.
@@ -107,6 +106,42 @@ A star schema design was implemented to ensure performance and scalability.
 - Avoidance of many-to-many relationships  
 - Optimized column selection to reduce model size  
 - Proper granularity at order item level  
+
+---
+
+## Power BI Implementation
+
+This project includes key Power BI features expected in a production-level solution:
+
+### Data Modeling
+- Star schema design for performance and scalability  
+- Proper relationship management and filter flow  
+
+### DAX & Measures
+- Fully measure-driven model  
+- Use of CALCULATE, FILTER, and time intelligence functions  
+- Dynamic KPI selection using parameter-driven logic  
+
+### Row-Level Security (RLS)
+- Dynamic RLS implemented using user-based filtering  
+- Ensures secure and role-based data access  
+
+### Incremental Refresh
+- Configured to refresh only new and updated data  
+- Improves performance for large datasets  
+
+### Scheduled Refresh
+- Configured in Power BI Service  
+- Ensures data is always up to date  
+
+### Deployment & Sharing
+- Published to Power BI Service workspace  
+- App-based sharing for controlled access  
+- Role-based access management  
+
+### Architecture Advantage
+- Fully cloud-based using Microsoft Fabric  
+- No gateway required for data refresh  
 
 ---
 
