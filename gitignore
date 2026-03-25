@@ -1,0 +1,60 @@
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.python-version
+.ipynb_checkpoints/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment / secrets
+.env
+.env.*
+*.secret
+*.key
+*.pem
+
+# Logs
+*.log
+logs/
+
+# Editor / IDE
+.vscode/
+.idea/
+
+# Temporary / cache files
+*.tmp
+*.temp
+*.bak
+*.swp
+
+# Fabric / notebook local artifacts
+.sparkStaging/
+.metastore/
+local_artifacts/
+.fabric_cache/
+
+# Power BI local / autosave artifacts
+*.pbix.autosave
+*.pbit.autosave
+
+# Data files usually kept out of Git
+*.csv
+*.xlsx
+*.xls
+*.parquet
+*.feather
+
+# Keep documentation samples if intentionally added
+!docs/**/*.csv
+!docs/**/*.xlsx
