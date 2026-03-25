@@ -386,4 +386,4 @@ This repository presents a complete retail and e-commerce analytics workflow bui
 
 For questions, feedback, or collaboration, connect on LinkedIn:
 
-[LinkedIn Profile](Add your LinkedIn profile link here)
+[LinkedIn Profile](https://www.linkedin.com/in/bhushangawali148/)
