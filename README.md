@@ -319,26 +319,43 @@ Validation is applied across the backend and reporting layers.
 
 ## Repository Structure
 
-- `00_ORCH_EndToEnd_Data_Pipeline`  
-  Fabric pipeline for end-to-end workflow orchestration
-
-- `01_DFGen2_Ingestion_Transformation_DBO`  
-  Dataflow Gen2 for ingestion and initial transformation into the dbo layer
-
-- `02_NB_Silver_Layer_Standardization`  
-  Notebook for Silver layer cleaning and standardization
-
-- `03_NB_Gold_Layer_Dimensional_Model`  
-  Notebook for Gold-layer dimensional modeling
-
-- `04_SM_Retail_ECommerce_Sales_Model`  
-  Power BI semantic model built on the Gold layer using Import mode
-
-- `05_RPT_Retail_ECommerce_Sales_Analysis`  
-  Final Power BI report for interactive analysis and business reporting
-
-- `LH_Ecommerce`  
-  Fabric Lakehouse used to store and manage the project data foundation
+```text
+Retail-ECommerce-Sales-Analysis/
+│
+├── README.md
+├── LICENSE
+├── .gitignore
+│
+├── fabric/
+│   ├── 00_ORCH_EndToEnd_Data_Pipeline
+│   ├── 01_DFGen2_Ingestion_Transformation_DBO
+│   ├── 02_NB_Silver_Layer_Standardization.ipynb
+│   ├── 03_NB_Gold_Layer_Dimensional_Model.ipynb
+│   ├── 04_SM_Retail_ECommerce_Sales_Model
+│   └── LH_Ecommerce
+│
+├── powerbi/
+│   ├── 05_RPT_Retail_ECommerce_Sales_Analysis.pbix
+│   ├── dax-measures.md
+│   ├── rls-notes.md
+│   ├── incremental-refresh.md
+│   ├── scheduled-refresh.md
+│   ├── report-pages.md
+│   └── bookmarks-tooltips-notes.md
+│
+├── docs/
+│   ├── architecture-diagram.png
+│   ├── pipeline-screenshot.png
+│   ├── data-model-diagram.png
+│   ├── report-screenshots/
+│   ├── validation-notes.md
+│   └── prerequisites.md
+│
+└── assets/
+    ├── dashboard-cover.png
+    ├── icons/
+    └── theme-colors.md
+```
 
 ---
 
@@ -362,3 +379,11 @@ Validation is applied across the backend and reporting layers.
 ## Conclusion
 
 This repository presents a complete retail and e-commerce analytics workflow built with Microsoft Fabric and Power BI, covering ingestion, transformation, dimensional modeling, orchestration, semantic modeling, DAX, security, refresh strategy, guided report interaction, and reporting in a single structured solution.
+
+---
+
+## Connect
+
+For questions, feedback, or collaboration, connect on LinkedIn:
+
+[LinkedIn Profile](Add your LinkedIn profile link here)
