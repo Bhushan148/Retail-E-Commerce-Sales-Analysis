@@ -1,263 +1,364 @@
 # Retail & E-Commerce Sales Analysis
 
----
-
 ## Live Report
-
 [View Power BI Report](Add your Power BI report link here)
-
----
 
 ## Challenge Context
 
-This project was developed as part of the **Power BI School Dashboard Competition (Dashboard Wars: Season 1)**.
+This implementation aligns with the **Power BI School Dashboard Competition (Dashboard Wars: Season 1)**.
 
 Challenge link:  
 https://www.skool.com/powerbi-school-6896/can-your-dashboard-win-50
 
-The challenge focused on building a business-oriented Power BI dashboard that clearly communicates insights through structured analysis and effective storytelling.
-
-### Challenge Brief
-Design and present a Power BI dashboard that demonstrates the ability to translate raw data into meaningful and actionable insights.
-
-### Submission Guidelines
-- Share dashboard screenshots within the community  
-- Publish the dashboard on LinkedIn using #PowerBISchool  
-
-### Evaluation Criteria
-- Creativity in approach  
-- Clarity of business storytelling  
-- Report design and usability  
-
-### Timeline
-Deadline: 31st March 2026  
-
-This project was designed to align with these requirements by emphasizing clarity, structured analysis, and practical business insights.
+The challenge focused on building a business-oriented dashboard that translates raw data into meaningful and actionable insights through analytical clarity, usability, and storytelling.
 
 ---
 
 ## Overview
 
-This project is an end-to-end Power BI solution developed to analyze retail and e-commerce performance across revenue, orders, customers, products, and profitability.
+Retail & E-Commerce Sales Analysis is an end-to-end analytics solution built with **Microsoft Fabric** and **Power BI** to analyze revenue, orders, customers, products, profitability, channels, and geography.
 
-The objective was to design a business-focused reporting layer that consolidates transactional data into a structured analytical model, enabling both executive-level monitoring and detailed operational analysis.
-
-The solution combines data modeling, transformation, DAX-based calculations, and report design to deliver a complete analytical workflow aligned with real-world BI practices.
+The solution covers the full analytical lifecycle, including data ingestion, transformation, dimensional modeling, orchestration, semantic modeling, DAX implementation, refresh strategy, security design, and report development.
 
 ---
 
 ## Objective
 
-To build a scalable and reusable analytical model that supports key business decisions by providing visibility into:
+The solution is designed to provide visibility into:
 
-- Revenue trends and performance drivers  
-- Customer acquisition, retention, and lifetime value  
-- Product and category contribution  
-- Profitability and cost structure  
-- Channel and regional distribution  
+- revenue trends and performance drivers  
+- customer acquisition, retention, and repeat behavior  
+- product and category contribution  
+- profitability and margin performance  
+- channel and regional distribution  
+- order quality metrics such as delivery, cancellation, and returns  
 
 ---
 
 ## Architecture
 
-The project follows a structured BI lifecycle:
+The implementation follows a structured medallion-style architecture inside Microsoft Fabric:
 
-Data → Transform → Model → DAX → Optimize → Secure → Report → Validate
+```text
+Data Source → Dataflow Gen2 → dbo → Silver → Gold → Semantic Model → Power BI Report
+```
 
-Each layer is designed to ensure separation of concerns between data preparation, business logic, and visualization.
+### Layers
+
+**Dataflow Gen2 / dbo**  
+Source data is ingested and transformed into the `dbo` schema using Fabric Dataflow Gen2.
+
+**Silver layer**  
+Silver notebooks standardize and clean the source-aligned tables to ensure schema consistency and trusted downstream inputs.
+
+**Gold layer**  
+Gold notebooks build the dimensional model by creating fact and dimension tables for analytical consumption.
+
+**Semantic model**  
+A Power BI semantic model is built on top of the Gold layer using **Import mode**.
+
+**Report layer**  
+The final Power BI report delivers interactive business analysis through a structured dashboard experience.
 
 ---
 
-## Data Sources and Transformation
+## Fabric Orchestration
 
-### Local Excel
-Used during the initial phase for:
-- data exploration  
-- schema design  
-- DAX development  
-- report prototyping  
+An orchestration pipeline manages the backend workflow end to end.
 
-### Microsoft Fabric
-- Data ingested into Fabric environment  
-- ETL transformations applied to clean and structure data  
-- Dataset prepared for analytical consumption  
-- Power BI connected to transformed Fabric model  
+### Pipeline
+`00_ORCH_EndToEnd_Data_Pipeline`
 
-This demonstrates the ability to move from a file-based setup to a structured data platform with proper transformation logic.
+### Execution Flow
+
+```text
+→ 01_DFGen2_Ingestion_Transformation_DBO
+→ 02_NB_Silver_Layer_Standardization
+→ 03_NB_Gold_Layer_Dimensional_Model
+→ 04_SM_Retail_ECommerce_Sales_Model
+→ 05_RPT_Retail_ECommerce_Sales_Analysis
+```
+
+### Orchestration Scope
+
+- dependency-based sequential execution  
+- integration of Dataflow Gen2 and notebooks  
+- backend automation across ingestion, Silver, and Gold layers  
+- semantic model refresh as part of the workflow  
+- monitoring through Fabric pipeline run history  
 
 ---
 
 ## Data Model
 
-A star schema design was implemented to ensure performance and scalability.
+A **star schema** is implemented to support performance, scalability, and semantic clarity.
 
 ### Fact Table
-- fact_sales_order_item (transaction-level sales data)
+- `fact_sales_order_item`
 
 ### Dimension Tables
-- dim_date  
-- dim_customer  
-- dim_product  
-- dim_region  
-- dim_SalesChannel  
+- `dim_date`
+- `dim_customer`
+- `dim_product`
+- `dim_geography`
+- `dim_region`
 
-### Design Considerations
-- Single-direction relationships for controlled filter flow  
-- Avoidance of many-to-many relationships  
-- Optimized column selection to reduce model size  
-- Proper granularity at order item level  
+### Modeling Principles
+
+- clear separation between fact and dimension tables  
+- single-direction relationship flow  
+- optimized granularity at order-item level  
+- avoidance of many-to-many relationships  
+- business-friendly dimensional slicing for analysis  
+
+---
+
+## Data Processing in Fabric
+
+The backend implementation includes the following stages:
+
+- ingestion using **Dataflow Gen2**  
+- landing into the `dbo` layer  
+- Silver layer standardization  
+- Gold layer dimensional modeling  
+- schema alignment across business entities  
+- key creation for dimensions  
+- date key conversion into reporting-ready date fields  
+- orchestration of backend execution using Fabric pipeline  
 
 ---
 
 ## Power BI Implementation
 
-This project includes key Power BI features expected in a production-level solution:
+The reporting layer is built to reflect both technical modeling discipline and business usability.
 
-### Data Modeling
-- Star schema design for performance and scalability  
-- Proper relationship management and filter flow  
+### Semantic Model Design
 
-### DAX & Measures
-- Fully measure-driven model  
-- Use of CALCULATE, FILTER, and time intelligence functions  
-- Dynamic KPI selection using parameter-driven logic  
+- **Import mode** semantic model for analytical performance  
+- relationship management using a star schema  
+- measure-driven business logic  
+- controlled filter flow for predictable analysis  
 
-### Row-Level Security (RLS)
-- Dynamic RLS implemented using user-based filtering  
-- Ensures secure and role-based data access  
+### DAX Implementation
 
-### Incremental Refresh
-- Configured to refresh only new and updated data  
-- Improves performance for large datasets  
+Business logic is centralized in measures to support consistency and reuse across report pages.
+
+#### DAX Areas Included
+
+- KPI measures  
+- filter context control using `CALCULATE`  
+- conditional logic using `IF` and `SWITCH`  
+- time-intelligence calculations  
+- contribution and share calculations  
+- profitability analysis  
+- customer behavior analysis  
+- dynamic KPI selection  
+
+#### Core Metrics
+
+- net revenue  
+- gross sales  
+- discount amount  
+- return amount  
+- gross profit  
+- order count  
+- customer count  
+- average order value  
+- repeat customer rate  
+- cancellation rate  
+- delivery rate  
+- product contribution  
+- regional and channel share  
+
+---
+
+## Report Features
+
+The report includes several user-focused features to improve navigation, interpretability, and interaction.
+
+### Info Pages and Guidance
+
+Dedicated information pages are included to guide users on how to navigate the report and use each page effectively. These pages provide contextual help for report navigation, KPI-driven interaction, filter usage, reset behavior, and refresh status visibility.
+
+### Tooltips
+
+Tooltips are implemented wherever relevant to improve understanding without overcrowding the page layout.
+
+#### Tooltip Usage Includes
+
+- KPI tooltips to explain metric meaning and business context  
+- contextual tooltips for selected visuals where added value is needed  
+- hover-based information to support faster interpretation of the report  
+
+### Filter Pane Interaction
+
+A dedicated filter pane is included using **bookmarks** with show/hide behavior to improve usability while keeping the default page layout clean.
+
+### Reset and Navigation Features
+
+The report includes usability-focused interactions such as:
+
+- reset all slicers action  
+- page navigation menu  
+- return-to-default-view interaction  
+- guided help/information sections  
+
+### Last Refresh Status
+
+A visible **Last Refresh On** section is included in the report layout so users can quickly confirm the latest report data refresh timestamp.
+
+---
+
+## Refresh Strategy
+
+Since the semantic model uses **Import mode**, refresh strategy is an important part of the design.
+
+### Backend Refresh
+The Fabric pipeline orchestrates data ingestion, Silver transformation, Gold modeling, and semantic model refresh in sequence.
+
+### Semantic Model Refresh
+The semantic model is refreshed after successful Gold layer completion to keep the reporting layer aligned with the latest processed data.
 
 ### Scheduled Refresh
-- Configured in Power BI Service  
-- Ensures data is always up to date  
+Scheduled refresh is part of the operational design to ensure the analytical model remains current for report consumption.
 
-### Deployment & Sharing
-- Published to Power BI Service workspace  
-- App-based sharing for controlled access  
-- Role-based access management  
-
-### Architecture Advantage
-- Fully cloud-based using Microsoft Fabric  
-- No gateway required for data refresh  
-
----
-
-## DAX Implementation
-
-Business logic is centralized in a dedicated measures table, ensuring consistency across the report.
-
-Key implementations include:
-
-- Core KPIs: Revenue, Orders, Customers, AOV, Gross Profit  
-- Profitability metrics: Margin, discount impact, return impact  
-- Customer metrics: New, returning, repeat rate, lifetime value  
-- Order quality metrics: delivery, cancellation, return rates  
-- Time intelligence: MoM, YoY, YTD, rolling periods  
-- Product analytics: contribution %, ranking, Pareto analysis  
-- Channel and region share calculations  
-- Dynamic KPI selection using parameter-driven logic  
-
-The model is fully measure-driven, minimizing dependency on calculated columns and improving flexibility.
-
----
-
-## Report Structure
-
-The report is designed to support both high-level monitoring and detailed analysis.
-
-### Home
-Provides navigation and context for the report.
-
-### Overview
-- Executive KPIs  
-- Monthly revenue trend  
-- Regional contribution  
-- Revenue to profit bridge  
-
-### Sales
-- Net revenue trend with MoM analysis  
-- Order lifecycle breakdown  
-- Channel performance  
-
-### Products
-- Category contribution  
-- Price band analysis  
-- Product-level performance  
-
-### Customers
-- Loyalty segmentation  
-- Customer growth and retention trends  
-- Demographic distribution  
-
-### Details
-- Financial breakdown with current vs prior year comparison  
-- Variance and YoY analysis  
-- Order and efficiency metrics  
-
----
-
-## Design and User Experience
-
-The report is built with a focus on clarity and usability.
-
-- KPI-first layout for immediate visibility  
-- Consistent visual hierarchy across pages  
-- Controlled use of colors and formatting  
-- Clear navigation between business areas  
-
-Interactive features include:
-- KPI selector to dynamically change analysis  
-- Reset filters functionality  
-- Slicer-driven analysis  
-- Context-aware visuals  
-
----
-
-## Performance Optimization
-
-Several techniques were applied to ensure efficient performance:
-
-- Removal of unnecessary columns and fields  
-- Reduction of model cardinality  
-- Use of variables in DAX for optimized calculations  
-- Limiting high-density visuals per page  
-- Efficient filter context handling  
+### Incremental Refresh
+The fact design is aligned to support **incremental refresh** based on date-driven partitioning for scalable model maintenance.
 
 ---
 
 ## Security
 
-The model supports dynamic row-level security (RLS), enabling user-specific data access based on role or region.
+The solution includes **row-level security (RLS)** considerations for controlled access to report data.
+
+### Security Scope
+
+- role-based data access  
+- user-based filtering logic  
+- restricted visibility by business scope such as region or segment  
 
 ---
 
-## Validation and Testing
+## Performance Optimization
 
-The report was validated through:
+Performance considerations are applied across both Fabric and Power BI layers.
 
-- Cross-checking KPI outputs against source data  
-- Comparing results between Excel and Fabric datasets  
-- Testing filter interactions and visual consistency  
-- Ensuring stability of calculations across different contexts  
+### Optimization Areas
+
+- star schema modeling  
+- selective column usage  
+- measure-first design  
+- reduced dependency on calculated columns  
+- clean relationship paths  
+- appropriate fact granularity  
+- efficient DAX design  
+- report layouts optimized for usability and rendering efficiency  
 
 ---
 
-## Repository Contents
+## Report Structure
 
-This repository includes all components required to understand and reproduce the solution.
+The report is organized to support both executive-level monitoring and detailed analysis.
 
-### Report Assets
-- `/pbix` — Power BI report files  
-- `/dax` — DAX measure definitions  
-- `/reports` — report screenshots  
+### Pages
+
+**Home**  
+Navigation and report introduction
+
+**Overview**  
+Executive KPIs and high-level performance summaries
+
+**Sales**  
+Revenue trends, order metrics, channel analysis, and order status analysis
+
+**Products**  
+Category and product contribution analysis
+
+**Customers**  
+Customer growth, segmentation, and repeat behavior
+
+**Details**  
+Detailed financial and operational breakdowns
+
+**Info / Guide Pages**  
+Dedicated help pages explaining report usage, navigation, filter behavior, KPI interaction, and reset actions
+
+---
+
+## Design and User Experience
+
+The report is built with a focus on clarity, usability, and analytical flow.
+
+### Design Principles
+
+- KPI-first layout  
+- clear visual hierarchy  
+- business-oriented storytelling  
+- interactive slicers and filters  
+- structured page-level organization  
+- consistent formatting and navigation  
+- guided report usage through info pages  
+- clean interaction design using bookmarks and tooltips  
+
+---
+
+## Validation
+
+Validation is applied across the backend and reporting layers.
+
+### Validation Activities
+
+- comparing KPI outputs against transformed source data  
+- checking consistency across backend layers  
+- validating joins and model relationships  
+- testing filter interactions  
+- verifying DAX outputs across different contexts  
+- ensuring visual outputs remain aligned with business logic  
+
+---
+
+## Repository Structure
+
+- `00_ORCH_EndToEnd_Data_Pipeline`  
+  Fabric pipeline for end-to-end workflow orchestration
+
+- `01_DFGen2_Ingestion_Transformation_DBO`  
+  Dataflow Gen2 for ingestion and initial transformation into the dbo layer
+
+- `02_NB_Silver_Layer_Standardization`  
+  Notebook for Silver layer cleaning and standardization
+
+- `03_NB_Gold_Layer_Dimensional_Model`  
+  Notebook for Gold-layer dimensional modeling
+
+- `04_SM_Retail_ECommerce_Sales_Model`  
+  Power BI semantic model built on the Gold layer using Import mode
+
+- `05_RPT_Retail_ECommerce_Sales_Analysis`  
+  Final Power BI report for interactive analysis and business reporting
+
+- `LH_Ecommerce`  
+  Fabric Lakehouse used to store and manage the project data foundation
+
+---
+
+## Technology Stack
+
+- Microsoft Fabric  
+- Dataflow Gen2  
+- Fabric Pipelines  
+- Lakehouse  
+- Notebook-based transformation  
+- Power BI  
+- DAX  
+- Import Mode Semantic Model  
+- Bookmarks  
+- Tooltips  
+- Row-Level Security (RLS)  
+- Incremental Refresh  
 
 ---
 
 ## Conclusion
 
-This project demonstrates the ability to design and implement a complete Power BI solution, covering data transformation, modeling, DAX engineering, and business-oriented reporting.
-
-It reflects a practical approach to building scalable and maintainable analytics solutions that can transition from local development to a structured data platform.
+This repository presents a complete retail and e-commerce analytics workflow built with Microsoft Fabric and Power BI, covering ingestion, transformation, dimensional modeling, orchestration, semantic modeling, DAX, security, refresh strategy, guided report interaction, and reporting in a single structured solution.
