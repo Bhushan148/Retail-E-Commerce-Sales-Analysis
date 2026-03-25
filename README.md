@@ -1,7 +1,7 @@
 # Retail & E-Commerce Sales Analysis
 
 ## Live Report
-[View Power BI Report](https://app.powerbi.com/view?r=eyJrIjoiMjBlZGViMmUtNTgwMy00M2Y4LWEwMGMtMjJiYjk1MjFjMjhlIiwidCI6IjI1Y2UwMjYxLWJiZDYtNDljZC1hMWUyLTU0MjYwODg2ZDE1OSJ9&pageName=fa9b1cf475e064bbb51d)
+https://app.powerbi.com/view?r=eyJrIjoiMjBlZGViMmUtNTgwMy00M2Y4LWEwMGMtMjJiYjk1MjFjMjhlIiwidCI6IjI1Y2UwMjYxLWJiZDYtNDljZC1hMWUyLTU0MjYwODg2ZDE1OSJ9&pageName=fa9b1cf475e064bbb51d
 
 ## Challenge Context
 
