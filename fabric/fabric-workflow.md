@@ -275,7 +275,7 @@ The orchestration pipeline manages the backend workflow in sequence so that the 
 ### Pipeline Flow
 
 ```text
-01_DFGen2_Ingestion_Transformation_DBO
+→ 01_DFGen2_Ingestion_Transformation_DBO
 → 02_NB_Silver_Layer_Standardization
 → 03_NB_Gold_Layer_Dimensional_Model
 → 04_SM_Retail_ECommerce_Sales_Model
