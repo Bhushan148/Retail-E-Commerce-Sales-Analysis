@@ -1,0 +1,155 @@
+/// Disconnected helper table for the Revenue to Gross Profit waterfall bridge chart. Contains ordered steps, types, color hints, signs, and descriptions for rich visual formatting.
+table '_Revenue Bridge'
+	lineageTag: 938840f8-ce5b-4031-b1ac-e6f181bc7cc2
+
+	/// Core waterfall measure. Returns the correct signed value for each bridge step. Use as Y-axis in the Waterfall visual.
+	measure 'Bridge Value' =
+			SWITCH(
+			    SELECTEDVALUE('_Revenue Bridge'[Step Name]),
+			    "Total Revenue",  [Total Revenue],
+			    "Discounts",      -[Total Discount Amount],
+			    "Returns",        -[Total Return Revenue Loss],
+			    "Product Cost",   -[Total Product Cost],
+			    "Gross Profit",   [Gross Profit],
+			    BLANK()
+			)
+		formatString: $#,##0.00;($#,##0.00);$#,##0.00
+		displayFolder: 2. Profitability\Revenue Bridge
+		lineageTag: b4ea64cd-0b62-4356-96c9-368003626f9d
+
+	/// Each step's absolute value as a % of Total Revenue. Use as tooltip or data label.
+	measure 'Bridge % of Revenue' =
+			DIVIDE(
+			    ABS([Bridge Value]),
+			    [Total Revenue],
+			    BLANK()
+			)
+		formatString: 0.0%
+		displayFolder: 2. Profitability\Revenue Bridge
+		lineageTag: 4f25294f-f360-48da-b81d-dbf02b07b328
+
+	/// Pre-formatted tooltip string combining dollar value, % of revenue, and running balance after each step.
+	measure 'Bridge Label' =
+			VAR _val  = [Bridge Value]
+			VAR _pct  = [Bridge % of Revenue]
+			VAR _bal  = SELECTEDVALUE('_Revenue Bridge'[Running Balance])
+			VAR _sign = IF(_val < 0, "-", "")
+			VAR _abs  = ABS(_val)
+			VAR _fmtVal = IF(_abs >= 1000000,
+			    _sign & "$" & FORMAT(_abs / 1000000, "0.00") & "M",
+			    _sign & "$" & FORMAT(_abs / 1000, "0") & "K")
+			VAR _fmtBal = IF(_bal >= 1000000,
+			    "$" & FORMAT(_bal / 1000000, "0.00") & "M",
+			    "$" & FORMAT(_bal / 1000, "0") & "K")
+			RETURN
+			    IF(
+			        NOT ISBLANK(_val),
+			        _fmtVal
+			            & "  (" & FORMAT(_pct, "0.0%") & " of revenue)"
+			            & UNICHAR(10) & "Running balance: " & _fmtBal,
+			        BLANK()
+			    )
+		displayFolder: 2. Profitability\Revenue Bridge
+		lineageTag: 80281f5b-2abf-47d4-a30e-938274673060
+
+	column 'Sort Order'
+		formatString: 0
+		lineageTag: ac926e87-8fb4-4598-95e5-522e3bbc9b5f
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Sort Order]
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Step Name'
+		lineageTag: 93ebfd86-011b-42a8-85ae-610bea5b7a6a
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Step Name]
+		sortByColumn: 'Sort Order'
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Step Type'
+		lineageTag: 3fe53036-dee8-4931-ae6f-1c906e027ce7
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Step Type]
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Bar Color'
+		lineageTag: b6d3033c-212f-44e8-9640-4c648ab65746
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Bar Color]
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Step Description'
+		lineageTag: b2e996aa-5504-4043-8f01-0bc87b7e48d2
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Step Description]
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Cumulative dollar value remaining after each deduction step. Shows the live balance at every stage of the bridge.
+	column 'Running Balance' =
+			VAR _rev  = [Total Revenue]
+			VAR _disc = [Total Discount Amount]
+			VAR _ret  = [Total Return Revenue Loss]
+			VAR _cost = [Total Product Cost]
+			VAR _gp   = [Gross Profit]
+			RETURN
+			    SWITCH(
+			        '_Revenue Bridge'[Sort Order],
+			        1, _rev,
+			        2, _rev - _disc,
+			        3, _rev - _disc - _ret,
+			        4, _rev - _disc - _ret - _cost,
+			        5, _gp,
+			        BLANK()
+			    )
+		dataType: double
+		formatString: $#,0;($#,0);$#,0
+		lineageTag: f8a32bd2-f1af-4283-8003-717ffc55533c
+		summarizeBy: none
+
+	/// Each step's absolute impact as a percentage of Total Revenue. Shows the relative weight of each deduction.
+	column 'Impact vs Revenue %' =
+			VAR _rev  = [Total Revenue]
+			RETURN
+			    SWITCH(
+			        '_Revenue Bridge'[Sort Order],
+			        1, 1.0,
+			        2, DIVIDE([Total Discount Amount],      _rev),
+			        3, DIVIDE([Total Return Revenue Loss],   _rev),
+			        4, DIVIDE([Total Product Cost],          _rev),
+			        5, DIVIDE([Gross Profit],                _rev),
+			        BLANK()
+			    )
+		dataType: double
+		formatString: 0.0%
+		lineageTag: 6176b15c-3174-47e9-a64e-bbba99f839db
+		summarizeBy: none
+
+	partition '_Revenue Bridge' = calculated
+		mode: import
+		source =
+				
+				DATATABLE(
+				    "Sort Order", INTEGER,
+				    "Step Name", STRING,
+				    "Step Type", STRING,
+				    "Bar Color", STRING,
+				    "Step Description", STRING,
+				    {
+				        {1, "Total Revenue", "Total", "#185FA5", "The total sales value before any discounts, returns, or product cost are deducted. This is the starting point of the bridge."},
+				        {2, "Discounts", "Deduction", "#E24B4A", "The portion of revenue reduced due to discounts, offers, or promotional pricing given to customers."},
+				        {3, "Returns", "Deduction", "#E24B4A", "The amount of revenue lost because of returned or refunded orders."},
+				        {4, "Product Cost", "Deduction", "#E24B4A", "The direct cost of the items sold. This is the main cost deducted from revenue to calculate gross profit."},
+				        {5, "Gross Profit", "Total", "#1D9E75", "The amount remaining after deducting discounts, returns, and product cost from total revenue. This represents the business's core profitability."}
+				    }
+				)
+

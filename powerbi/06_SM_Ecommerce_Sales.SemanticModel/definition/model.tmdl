@@ -1,0 +1,32 @@
+model Model
+	culture: en-IN
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: en-IN
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation __PBI_TimeIntelligenceEnabled = 1
+
+annotation PBI_QueryOrder = ["RangeStart","RangeEnd","Last Refresh","dim_customer","dim_geography","dim_product","dim_region","fact_sales_order_item"]
+
+annotation PBI_ProTooling = ["MCP-PBIModeling","TMDLView_Desktop"]
+
+ref table DateTableTemplate_9827281e-9f05-4a03-89f1-9c1c5c2fe042
+ref table dim_date
+ref table _Measures
+ref table 'KPI Selector'
+ref table 'Last Refresh'
+ref table 'KPI Combo Selector'
+ref table '_Revenue Bridge'
+ref table UserRegionAccess
+ref table dim_customer
+ref table LocalDateTable_aa97b8e8-6bd5-463b-a169-4dddc0f6617f
+ref table dim_geography
+ref table dim_product
+ref table dim_region
+ref table fact_sales_order_item
+ref table '_Detail Rows'
+
+ref cultureInfo en-IN
+

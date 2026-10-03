@@ -1,0 +1,247 @@
+table fact_sales_order_item
+	lineageTag: 1180cb0e-a834-4e84-a0cf-ac8b75fefff4
+
+	refreshPolicy
+		policyType: basic
+		rollingWindowGranularity: year
+		rollingWindowPeriods: 5
+		incrementalGranularity: month
+		incrementalPeriods: 1
+		sourceExpression =
+			let
+			    Source = Sql.Database("<sql-endpoint-id>.datawarehouse.fabric.microsoft.com", "LH_Ecommerce"),
+			    gold_fact_sales_order_item = Source{[Schema="gold",Item="fact_sales_order_item"]}[Data],
+			    #"Changed Type" = Table.TransformColumnTypes(gold_fact_sales_order_item,{{"OrderDate", type datetime}}),
+			    #"Filtered Rows" = Table.SelectRows(#"Changed Type", each [OrderDate] > RangeStart and [OrderDate] <= RangeEnd)
+			in
+			    #"Filtered Rows"
+
+	/// Unique identifier for each order. Used in DISTINCTCOUNT for Total Orders, Total Delivered/Returned/Cancelled Orders.
+	column OrderID
+		dataType: string
+		lineageTag: cbe199ea-9422-405b-a372-3a9961ccac81
+		summarizeBy: none
+		sourceColumn: OrderID
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Unique identifier for each line item within an order. One order can have multiple line items. Not used directly in report visuals.
+	column OrderItemID
+		dataType: string
+		lineageTag: 2c1e1620-c644-40cb-a991-db18d899bbd8
+		summarizeBy: none
+		sourceColumn: OrderItemID
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Date the order was placed. Joins to dim_date[Date] (active relationship). All time-intelligence measures are driven by this column.
+	column OrderDate
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 4319c74c-d715-4925-bdf5-357142369d50
+		summarizeBy: none
+		sourceColumn: OrderDate
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Foreign key to dim_customer[CustomerKey]. Used in DISTINCTCOUNT for Total Customers and New Customers.
+	column CustomerKey
+		dataType: int64
+		formatString: 0
+		lineageTag: 8a102cff-6bd9-454c-87c9-3c5cd1d13f8a
+		summarizeBy: none
+		sourceColumn: CustomerKey
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Foreign key to dim_product[ProductKey]. Joins product category, brand, and price band to each sales row.
+	column ProductKey
+		dataType: int64
+		formatString: 0
+		lineageTag: e150c534-e547-4876-a093-d5651688ce7a
+		summarizeBy: none
+		sourceColumn: ProductKey
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Foreign key to dim_geography[GeographyKey]. Used to join city, state, and region to sales rows for the Revenue by Region chart on the Overview page.
+	column GeographyKey
+		dataType: int64
+		formatString: 0
+		lineageTag: 2f7fa8bc-9376-4a86-9a21-fcf3ebd43849
+		summarizeBy: none
+		sourceColumn: GeographyKey
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Units sold in this line item. Summed by Total Units Sold; used in Avg Units per Order in the Details page P&L table.
+	column Quantity
+		dataType: int64
+		formatString: 0
+		lineageTag: b22d8c1e-4254-4708-88e3-48825160defc
+		summarizeBy: sum
+		sourceColumn: Quantity
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Listed price per unit before discounts. Source column used in data validation; not shown directly in report visuals.
+	column UnitPriceUSD
+		dataType: double
+		lineageTag: fa71726f-07f5-41e0-a4e9-752e430f59f5
+		summarizeBy: sum
+		sourceColumn: UnitPriceUSD
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Revenue before discounts and returns. Summed by Total Revenue shown on the KPI banner (all pages) and as the starting bar in the Revenue to Gross Profit Bridge on the Overview page.
+	column GrossSalesUSD
+		dataType: double
+		lineageTag: c102a762-74db-42c4-89ce-80737a72318f
+		summarizeBy: sum
+		sourceColumn: GrossSalesUSD
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Dollar discount applied to this line item. Summed by Total Discount Amount shown in the Revenue Bridge (Discounts bar) and Details page P&L table.
+	column DiscountUSD
+		dataType: double
+		lineageTag: a04c3056-8075-4e4b-be48-ad89bb232c7a
+		summarizeBy: sum
+		sourceColumn: DiscountUSD
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Dollar value of returned goods. Summed by Total Return Revenue Loss shown in the Revenue Bridge (Returns bar) and Details page P&L table.
+	column ReturnAmountUSD
+		dataType: double
+		lineageTag: b397fad9-3d13-47e1-80e5-0a7e1ae7665d
+		summarizeBy: sum
+		sourceColumn: ReturnAmountUSD
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Actual revenue after discounts and returns. Summed by Net Revenue, the primary metric in the Sales trend chart, Overview KPI selector, and channel/region charts.
+	column NetRevenueUSD
+		dataType: double
+		lineageTag: a588b98e-3e05-4392-8c17-0ef0e0950eb0
+		summarizeBy: sum
+		sourceColumn: NetRevenueUSD
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Cost of goods for this line item. Summed by Total Product Cost shown in the Revenue Bridge (Product Cost bar) and Details page P&L table.
+	column ProductCostUSD
+		dataType: double
+		lineageTag: 9ea43795-c5c7-4d15-855a-61d2e530152a
+		summarizeBy: sum
+		sourceColumn: ProductCostUSD
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Net revenue minus product cost. Summed by Gross Profit shown on the KPI banner, as the final bar in the Revenue Bridge, and in the Details P&L table.
+	column GrossProfitUSD
+		dataType: double
+		lineageTag: f7a0cb89-900e-4993-a0e2-53aa1ad8c4d9
+		summarizeBy: sum
+		sourceColumn: GrossProfitUSD
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Flag: 1 = order returned. Used in Total Returned Orders on the Sales page order status chart and Details P&L table.
+	column IsReturned
+		dataType: int64
+		formatString: 0
+		lineageTag: 7937f2df-2d2a-44b0-8b68-b450c27dd724
+		summarizeBy: sum
+		sourceColumn: IsReturned
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Flag: 1 = order cancelled. Used in Total Cancelled Orders on the Sales page order status chart and Details P&L table.
+	column IsCancelled
+		dataType: int64
+		formatString: 0
+		lineageTag: 1aeed0ec-c3fa-4534-893e-6797c88aed3e
+		summarizeBy: sum
+		sourceColumn: IsCancelled
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Flag: 1 = order successfully delivered. Used in Total Delivered Orders on the Sales page order status chart and Delivery Rate %.
+	column IsDelivered
+		dataType: int64
+		formatString: 0
+		lineageTag: 2cb534d1-18c1-40d1-a937-6ad66220db87
+		summarizeBy: sum
+		sourceColumn: IsDelivered
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Flag: 1 = customer had at least one prior order. Used in Returning Customers measure for Repeat Customer Rate % on the Customers page.
+	column IsRepeatCustomer
+		dataType: int64
+		formatString: 0
+		lineageTag: bb2c5f08-cdab-4bff-9620-db5938331153
+		summarizeBy: sum
+		sourceColumn: IsRepeatCustomer
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Sequential order number per customer (1 = first order ever). Used in New Customers measure shown on the Customers page KPI card and Details P&L table.
+	column CustomerOrderSequence
+		dataType: int64
+		formatString: 0
+		lineageTag: fc343e62-d1a2-45d2-8af1-9dbd31551d56
+		summarizeBy: sum
+		sourceColumn: CustomerOrderSequence
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Order lifecycle status: Delivered, Returned, Cancelled, Shipped, Confirmed, Placed. Used to group the Revenue by Order Status bar chart on the Sales page.
+	column OrderStatus
+		dataType: string
+		lineageTag: a6fe5085-7379-4431-9193-0eceea990bd4
+		summarizeBy: none
+		sourceColumn: OrderStatus
+
+		annotation SummarizationSetBy = Automatic
+
+	column CustomerChannel
+		dataType: string
+		lineageTag: 24154cbc-aca5-4801-b156-cdf9dcc19e8c
+		summarizeBy: none
+		sourceColumn: CustomerChannel
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_sales_order_item = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("<sql-endpoint-id>.datawarehouse.fabric.microsoft.com", "LH_Ecommerce"),
+				    gold_fact_sales_order_item = Source{[Schema="gold",Item="fact_sales_order_item"]}[Data],
+				    #"Changed Type" = Table.TransformColumnTypes(gold_fact_sales_order_item,{{"OrderDate", type datetime}}),
+				    #"Filtered Rows" = Table.SelectRows(#"Changed Type", each [OrderDate] > RangeStart and [OrderDate] <= RangeEnd)
+				in
+				    #"Filtered Rows"
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_IsMQueryFoldable = True
+

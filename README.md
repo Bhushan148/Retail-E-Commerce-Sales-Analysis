@@ -1,389 +1,346 @@
 # Retail & E-Commerce Sales Analysis
 
+End-to-end analytics solution on **Microsoft Fabric** and **Power BI**: raw Excel → medallion lakehouse (Bronze / Silver / Gold) → star-schema semantic model → interactive report, orchestrated by a Fabric pipeline.
+
 ## Live Report
 https://app.powerbi.com/view?r=eyJrIjoiZGNkYzI4NGItY2FiNS00Njg0LTg5NGUtY2UyOTZiNGFkNTNkIiwidCI6IjI1Y2UwMjYxLWJiZDYtNDljZC1hMWUyLTU0MjYwODg2ZDE1OSJ9&pageName=fa9b1cf475e064bbb51d
 
+![Home](assets/screenshots/Home.png)
+![Overview](assets/screenshots/Overview.png)
+
 ## Challenge Context
 
-This implementation aligns with the **Power BI School Dashboard Competition (Dashboard Wars: Season 1)**.
+Built for the **Power BI School Dashboard Competition (Dashboard Wars: Season 1)**: https://www.skool.com/powerbi-school-6896/can-your-dashboard-win-50
 
-Challenge link:  
-https://www.skool.com/powerbi-school-6896/can-your-dashboard-win-50
+The challenge focused on a business-oriented dashboard that turns raw data into actionable insight through analytical clarity, usability and storytelling.
 
-The challenge focused on building a business-oriented dashboard that translates raw data into meaningful and actionable insights through analytical clarity, usability, and storytelling.
+## Table of Contents
+1. [Overview and objective](#overview-and-objective)
+2. [Architecture](#architecture)
+3. [Prerequisites](#prerequisites)
+4. [Fabric items and naming convention](#fabric-items-and-naming-convention)
+5. [Fabric workflow, step by step](#fabric-workflow-step-by-step)
+6. [Orchestration](#orchestration)
+7. [Data model](#data-model)
+8. [Semantic model](#semantic-model)
+9. [DAX measures](#dax-measures)
+10. [Storage mode: Import, and why not Direct Lake](#storage-mode-import-and-why-not-direct-lake)
+11. [Refresh strategy](#refresh-strategy)
+12. [Semantic model cloud connection](#semantic-model-cloud-connection)
+13. [Row-level security](#row-level-security)
+14. [Report pages and features](#report-pages-and-features)
+15. [Performance, validation and SQL cross-check](#performance-validation-and-sql-cross-check)
+16. [Source control](#source-control)
+17. [Repository structure](#repository-structure)
+18. [Technology stack](#technology-stack)
 
 ---
 
-## Overview
+## Overview and objective
 
-Retail & E-Commerce Sales Analysis is an end-to-end analytics solution built with **Microsoft Fabric** and **Power BI** to analyze revenue, orders, customers, products, profitability, channels, and geography.
+The solution provides visibility into:
 
-The solution covers the full analytical lifecycle, including data ingestion, transformation, dimensional modeling, orchestration, semantic modeling, DAX implementation, refresh strategy, security design, and report development.
+- revenue trends and performance drivers
+- customer acquisition, retention and repeat behavior
+- product and category contribution
+- profitability and margin performance
+- channel and regional distribution
+- order quality: delivery, cancellation and returns
 
----
-
-## Objective
-
-The solution is designed to provide visibility into:
-
-- revenue trends and performance drivers  
-- customer acquisition, retention, and repeat behavior  
-- product and category contribution  
-- profitability and margin performance  
-- channel and regional distribution  
-- order quality metrics such as delivery, cancellation, and returns  
+**Scale:** about 30,848 order-item rows, 20,000 orders, 8,000 customers, 200 products, 150 geographies and 4 regions.
 
 ---
 
 ## Architecture
 
-The implementation follows a structured medallion-style architecture inside Microsoft Fabric:
-
 ```text
-Data Source → Dataflow Gen2 → dbo → Silver → Gold → Semantic Model → Power BI Report
+OLTP.xlsx → Bronze (dbo.*_raw) → Silver → Gold → Semantic Model (Import) → Power BI Report
 ```
 
-### Layers
+![Fabric orchestration](assets/architecture/fabric-orchestration.png)
+![Semantic model](assets/architecture/powerbi-semantic-model-diagram.png)
 
-**Dataflow Gen2 / dbo**  
-Source data is ingested and transformed into the `dbo` schema using Fabric Dataflow Gen2.
-
-**Silver layer**  
-Silver notebooks standardize and clean the source-aligned tables to ensure schema consistency and trusted downstream inputs.
-
-**Gold layer**  
-Gold notebooks build the dimensional model by creating fact and dimension tables for analytical consumption.
-
-**Semantic model**  
-A Power BI semantic model is built on top of the Gold layer using **Import mode**.
-
-**Report layer**  
-The final Power BI report delivers interactive business analysis through a structured dashboard experience.
+| Layer | What happens |
+|---|---|
+| **Bronze** (`dbo.*_raw`) | `01_NB_Bronze_Ingestion` loads every sheet of `OLTP.xlsx` (11 sheets) into Delta tables. It replaced the original Dataflow Gen2 step: no gateway or OAuth connection needed, and it is re-runnable. |
+| **Silver** | Trims text (blank → NULL), enforces data types, pads postal codes, drops NULL and duplicate business keys, adds `_load_ts`. |
+| **Gold** | Builds the dimensional model with a data-quality gate: if any check fails the notebook errors and the pipeline does not refresh the model. |
+| **Semantic model** | Import-mode star schema with centralised DAX. |
+| **Report** | KPI-first dashboard with guided navigation. |
 
 ---
 
-## Fabric Orchestration
+## Prerequisites
 
-An orchestration pipeline manages the backend workflow end to end.
+- Microsoft Fabric workspace access (Fabric / trial / Premium capacity)
+- Lakehouse and Notebook support
+- Power BI Desktop (with the *Power BI Project (.pbip)* preview feature enabled for source control)
+- Power BI Service access to the semantic model and report
+- Permission to create or refresh Fabric items
 
-### Pipeline
-`00_ORCH_EndToEnd_Data_Pipeline`
+---
 
-### Execution Flow
+## Fabric items and naming convention
+
+Items follow `<NN>_<TYPE>_<Layer>_<Purpose>`. The number is the run order, so items sort top-to-bottom in the workspace list. The workspace is `Retail-Ecommerce-Analytics_DEV` (dev only).
+
+| Item | Type | Role |
+|---|---|---|
+| `00_PL_Master_Orchestration` | Pipeline | Runs the steps below in order |
+| `01_NB_Bronze_Ingestion` | Notebook | `OLTP.xlsx` → `dbo.*_raw` |
+| `02_DF_Bronze_Ingest_OltpExcel` | Dataflow Gen2 | Original Bronze approach, now replaced by the notebook |
+| `03_NB_Silver_Standardize` | Notebook | Bronze → Silver |
+| `04_NB_Gold_Dimensional_Model` | Notebook | Silver → Gold star schema and data-quality gate |
+| `06_SM_Ecommerce_Sales` | Semantic model | Import model used by the report |
+| `06_SM_Ecommerce_Sales_DL` | Semantic model | Direct Lake validation model (see below) |
+| `07_RPT_Ecommerce_Sales_Overview` | Report | Final dashboard |
+| `LH_Ecommerce` | Lakehouse | Storage for `dbo`, `silver` and `gold` (lakehouse names cannot start with a digit) |
+
+Prefixes: PL pipeline, DF dataflow, NB notebook, SM semantic model, RPT report, LH lakehouse. No environment suffixes on items.
+
+---
+
+## Fabric workflow, step by step
+
+1. **Source data.** One Excel file, `OLTP.xlsx`, with customers, products, orders, order items, customer segments and addresses, channels, geography, regions, order statuses and dates. It is reviewed first so entities, fields and reporting scope are clear.
+2. **Bronze ingestion.** `01_NB_Bronze_Ingestion` reads the workbook with pandas, turns blanks into real NULLs, and writes `dbo.<sheet>_raw` Delta tables. It fails the run if any sheet loads empty.
+3. **Silver standardization.** `03_NB_Silver_Standardize` cleans and types each table and writes `silver.*`, then reports raw vs silver row counts and dropped rows. The pipeline stops if any Silver table is empty.
+4. **Gold dimensional modeling.** `04_NB_Gold_Dimensional_Model` creates `dim_region`, `dim_geography`, `dim_customer`, `dim_product` and `fact_sales_order_item`, with analytical keys and reporting-ready fields.
+5. **Lakehouse foundation.** `LH_Ecommerce` holds all three layers and is the single backend store.
+6. **Semantic model.** Built on the Gold tables in Import mode with relationships, measures, RLS and refresh design.
+7. **Report.** Built on the semantic model, never on raw tables.
+8. **Orchestration.** The pipeline chains the steps and refreshes the model.
+
+Connecting the report to the semantic model (not directly to the lakehouse) gives cleaner business logic, controlled relationships, reusable measures, better security control and better performance.
+
+**Execution order for a manual run:** Bronze notebook → check `dbo` tables → Silver notebook → check Silver → Gold notebook → check Gold fact and dimensions → refresh the semantic model → open the report.
+
+---
+
+## Orchestration
+
+Pipeline `00_PL_Master_Orchestration`:
 
 ```text
-→ 01_DFGen2_Ingestion_Transformation_DBO
-→ 02_NB_Silver_Layer_Standardization
-→ 03_NB_Gold_Layer_Dimensional_Model
-→ 04_SM_Retail_ECommerce_Sales_Model
-→ 05_RPT_Retail_ECommerce_Sales_Analysis
+01_NB_Bronze_Ingestion
+   → 03_NB_Silver_Standardize         (on success)
+   → 04_NB_Gold_Dimensional_Model     (on success)
+   → Semantic model refresh           (on success)
 ```
 
-### Orchestration Scope
-
-- dependency-based sequential execution  
-- integration of Dataflow Gen2 and notebooks  
-- backend automation across ingestion, Silver, and Gold layers  
-- semantic model refresh as part of the workflow  
-- monitoring through Fabric pipeline run history  
+- dependency-based sequential execution
+- backend automation across ingestion, Silver and Gold
+- semantic model refresh as the last step, only after Gold passes its quality checks
+- monitoring through Fabric pipeline run history
 
 ---
 
-## Data Model
+## Data model
 
-A **star schema** is implemented to support performance, scalability, and semantic clarity.
+A **star schema** at order-item granularity.
 
-### Fact Table
-- `fact_sales_order_item`
+- **Fact:** `fact_sales_order_item`
+- **Dimensions:** `dim_date`, `dim_customer`, `dim_product`, `dim_geography`, `dim_region`
 
-### Dimension Tables
-- `dim_date`
-- `dim_customer`
-- `dim_product`
-- `dim_geography`
-- `dim_region`
-
-### Modeling Principles
-
-- clear separation between fact and dimension tables  
-- single-direction relationship flow  
-- optimized granularity at order-item level  
-- avoidance of many-to-many relationships  
-- business-friendly dimensional slicing for analysis  
+Principles: clear fact/dimension separation, single-direction relationships, no many-to-many, business-friendly slicing.
 
 ---
 
-## Data Processing in Fabric
+## Semantic model
 
-The backend implementation includes the following stages:
+The model centres on `fact_sales_order_item`, with these supporting tables:
 
-- ingestion using **Dataflow Gen2**  
-- landing into the `dbo` layer  
-- Silver layer standardization  
-- Gold layer dimensional modeling  
-- schema alignment across business entities  
-- key creation for dimensions  
-- date key conversion into reporting-ready date fields  
-- orchestration of backend execution using Fabric pipeline  
+| Table | Purpose |
+|---|---|
+| `_Measures` | Centralised DAX |
+| `KPI Selector`, `KPI Combo Selector` | Dynamic metric switching |
+| `_Detail Rows` | Controlled detail-row presentation |
+| `_Revenue Bridge` | Revenue-to-profit bridge analysis |
+| `Last Refresh` | Refresh visibility in the report |
+| `UserRegionAccess` | Row-level security mapping |
 
----
-
-## Power BI Implementation
-
-The reporting layer is built to reflect both technical modeling discipline and business usability.
-
-### Semantic Model Design
-
-- **Import mode** semantic model for analytical performance  
-- relationship management using a star schema  
-- measure-driven business logic  
-- controlled filter flow for predictable analysis  
-
-### DAX Implementation
-
-Business logic is centralized in measures to support consistency and reuse across report pages.
-
-#### DAX Areas Included
-
-- KPI measures  
-- filter context control using `CALCULATE`  
-- conditional logic using `IF` and `SWITCH`  
-- time-intelligence calculations  
-- contribution and share calculations  
-- profitability analysis  
-- customer behavior analysis  
-- dynamic KPI selection  
-
-#### Core Metrics
-
-- net revenue  
-- gross sales  
-- discount amount  
-- return amount  
-- gross profit  
-- order count  
-- customer count  
-- average order value  
-- repeat customer rate  
-- cancellation rate  
-- delivery rate  
-- product contribution  
-- regional and channel share  
+This supports reusable business logic, controlled filter flow, analytical flexibility and secure consumption.
 
 ---
 
-## Report Features
+## DAX measures
 
-The report includes several user-focused features to improve navigation, interpretability, and interaction.
+Business logic lives in measures, with calculated columns kept to a minimum.
 
-### Info Pages and Guidance
-
-Dedicated information pages are included to guide users on how to navigate the report and use each page effectively. These pages provide contextual help for report navigation, KPI-driven interaction, filter usage, reset behavior, and refresh status visibility.
-
-### Tooltips
-
-Tooltips are implemented wherever relevant to improve understanding without overcrowding the page layout.
-
-#### Tooltip Usage Includes
-
-- KPI tooltips to explain metric meaning and business context  
-- contextual tooltips for selected visuals where added value is needed  
-- hover-based information to support faster interpretation of the report  
-
-### Filter Pane Interaction
-
-A dedicated filter pane is included using **bookmarks** with show/hide behavior to improve usability while keeping the default page layout clean.
-
-### Reset and Navigation Features
-
-The report includes usability-focused interactions such as:
-
-- reset all slicers action  
-- page navigation menu  
-- return-to-default-view interaction  
-- guided help/information sections  
-
-### Last Refresh Status
-
-A visible **Last Refresh On** section is included in the report layout so users can quickly confirm the latest report data refresh timestamp.
+| Area | Measures |
+|---|---|
+| Core KPIs | Net Revenue, Gross Sales, Order Count, Customer Count, Average Order Value, Gross Profit, Gross Margin % |
+| Profitability | Discount Amount, Return Amount, Product Cost, Revenue vs Profit |
+| Customer | Total, New and Repeat Customers, Repeat Customer Rate, customer contribution to revenue |
+| Order quality | Delivery Rate, Cancellation Rate, Return Rate, order status breakdown, customer order sequence |
+| Time intelligence | MoM, YoY, YTD, rolling periods, prior-period variance |
+| Contribution | Product and category revenue and contribution %, regional and channel share |
+| Dynamic analysis | KPI selector, context-aware KPI analysis, measures reused across pages |
 
 ---
 
-## Refresh Strategy
+## Storage mode: Import, and why not Direct Lake
 
-Since the semantic model uses **Import mode**, refresh strategy is an important part of the design.
+The production semantic model (`06_SM_Ecommerce_Sales`) is **Import** mode over the Gold tables. I also built `06_SM_Ecommerce_Sales_DL`, a **Direct Lake on OneLake** version of the same model, to evaluate whether to switch. These are the challenges that surfaced:
 
-### Backend Refresh
-The Fabric pipeline orchestrates data ingestion, Silver transformation, Gold modeling, and semantic model refresh in sequence.
+| # | Challenge | What happened here | Import | DirectQuery | Direct Lake |
+|---|---|---|---|---|---|
+| 1 | Calculated columns and tables on lake tables | `Price Band`, `Running Balance`, `Impact vs Revenue %` and the DAX-built `dim_date` were rejected | Allowed | Limited | Not allowed when they reference lake tables, so they must move into Gold |
+| 2 | Strict data-type matching | `fact.GeographyKey` is `long` but `dim_geography.GeographyKey` is `string`; Import coerced it | Coerces | Mostly coerces | Relationship rejected |
+| 3 | Schema drift | Gold `dim_customer` now has `HomeStateName` and `CustomerSegmentName` where the model expected `HomeState` and `CustomerSegment` | Surfaces on next refresh | Surfaces on query | Framing fails immediately |
+| 4 | Credentials | Refresh failed: *"uses a default data connection without explicit connection credentials"* | Data source credentials | Data source credentials | Needs SSO or an explicit cloud connection |
+| 5 | Framing | A new model has no queryable tables until framed | Refresh loads data | None | Frame after each Gold load |
+| 6 | Incremental refresh | The `RangeStart` / `RangeEnd` policy has no meaning | Supported | Not applicable | Not applicable |
+| 7 | Power Query shaping | Type change and row filter on `OrderDate` lived in M | Anywhere in M | Folding only | Must move into the notebooks |
+| 8 | Helper M tables and auto date/time | `Last Refresh` and auto date tables are not supported | Allowed | Allowed | Not supported |
+| 9 | SQL endpoint vs OneLake flavour | The SQL-endpoint flavour can fall back to DirectQuery (for example with RLS) | n/a | n/a | Choose deliberately |
 
-### Semantic Model Refresh
-The semantic model is refreshed after successful Gold layer completion to keep the reporting layer aligned with the latest processed data.
+**To move to Direct Lake:** align the `GeographyKey` types, compute `Price Band` and `dim_date` in Gold, rebuild `_Revenue Bridge` as measures only, align column names with Gold, set an explicit connection, and frame the model at the end of the pipeline.
 
-### Scheduled Refresh
-Scheduled refresh is part of the operational design to ensure the analytical model remains current for report consumption.
-
-### Incremental Refresh
-The fact design is aligned to support **incremental refresh** based on date-driven partitioning for scalable model maintenance.
-
----
-
-## Security
-
-The solution includes **row-level security (RLS)** considerations for controlled access to report data.
-
-### Security Scope
-
-- role-based data access  
-- user-based filtering logic  
-- restricted visibility by business scope such as region or segment  
+For roughly 4.5 MB of source data, Import is the simpler and fully supported choice, so it stays the working model.
 
 ---
 
-## Performance Optimization
+## Refresh strategy
 
-Performance considerations are applied across both Fabric and Power BI layers.
+- **Backend refresh:** the pipeline runs Bronze, Silver and Gold in sequence.
+- **Semantic model refresh:** runs only after Gold completes, so reports match the latest processed data.
+- **Scheduled refresh:** the pipeline runs on a schedule so the Import model stays current.
+- **Incremental refresh:** `fact_sales_order_item` uses a basic policy: a rolling 5-year window, refreshing the most recent month, partitioned by order date through `RangeStart` / `RangeEnd`.
 
-### Optimization Areas
-
-- star schema modeling  
-- selective column usage  
-- measure-first design  
-- reduced dependency on calculated columns  
-- clean relationship paths  
-- appropriate fact granularity  
-- efficient DAX design  
-- report layouts optimized for usability and rendering efficiency  
+Check these after a refresh: model refresh status, latest data in the report, the *Last Refresh On* value, and run history in Fabric / Power BI Service.
 
 ---
 
-## Report Structure
+## Semantic model cloud connection
 
-The report is organized to support both executive-level monitoring and detailed analysis.
+**Issue.** Semantic model refresh was mapped to the default Single Sign-On connection instead of a dedicated cloud connection. That can make refresh unstable and the authentication path harder to control.
 
-### Pages
+**Resolution.** A dedicated, named cloud connection was created and the semantic model was mapped to it explicitly.
 
-**Home**  
-Navigation and report introduction
+- explicit connection mapping at the model level
+- managed authentication through the selected connection
+- a stable, reusable refresh path
 
-**Overview**  
-Executive KPIs and high-level performance summaries
-
-**Sales**  
-Revenue trends, order metrics, channel analysis, and order status analysis
-
-**Products**  
-Category and product contribution analysis
-
-**Customers**  
-Customer growth, segmentation, and repeat behavior
-
-**Details**  
-Detailed financial and operational breakdowns
-
-**Info / Guide Pages**  
-Dedicated help pages explaining report usage, navigation, filter behavior, KPI interaction, and reset actions
+**Impact.** Refresh configuration became easier to manage, aligned with the expected authentication flow, and the backend-to-report workflow became more reliable. This matters most when the model is refreshed as part of a Fabric pipeline. The same fix is needed for the Direct Lake validation model.
 
 ---
 
-## Design and User Experience
+## Row-level security
 
-The report is built with a focus on clarity, usability, and analytical flow.
+RLS restricts data to the subset relevant to each user's business scope, using the `UserRegionAccess` mapping table.
 
-### Design Principles
-
-- KPI-first layout  
-- clear visual hierarchy  
-- business-oriented storytelling  
-- interactive slicers and filters  
-- structured page-level organization  
-- consistent formatting and navigation  
-- guided report usage through info pages  
-- clean interaction design using bookmarks and tooltips  
+- typical scopes: region, business unit, channel, user-to-region or user-to-segment mapping
+- dynamic RLS with `USERPRINCIPALNAME()` and the access-mapping table
+- design rules: simple and maintainable, no duplicated reports, predictable filter propagation, roles aligned with real access needs
+- test each role in Power BI Desktop, confirm user-specific results in the Service, and check totals, filters and drill behavior under restriction
 
 ---
 
-## Validation
+## Report pages and features
 
-Validation is applied across the backend and reporting layers.
+![Pages](assets/screenshots/Sales.png)
 
-### Validation Activities
+| Page | Purpose |
+|---|---|
+| **Home** | Entry point, navigation and report introduction |
+| **Overview** | Executive KPIs, revenue and high-level performance |
+| **Sales** | Revenue trends, MoM comparison, channel breakdown, order status, daily and monthly trends |
+| **Products** | Category and product contribution, top and bottom performers |
+| **Customers** | Customer growth, segmentation and repeat behavior |
+| **Details** | Deeper financial and operational breakdowns, variance review |
+| **Info / Guide pages** | How to use the report, KPI guidance, filter and reset behavior, what *Last Refresh On* means |
 
-- comparing KPI outputs against transformed source data  
-- checking consistency across backend layers  
-- validating joins and model relationships  
-- testing filter interactions  
-- verifying DAX outputs across different contexts  
-- ensuring visual outputs remain aligned with business logic  
+Screenshots of every page are in [assets/screenshots](assets/screenshots).
+
+**Usability features**
+- **Bookmarks:** a filter pane that shows and hides on demand, guided navigation, reset-style interactions and a clean default view.
+- **Tooltips:** KPI tooltips explain what a metric means and how to read it. Contextual tooltips add detail where space is limited.
+- **Reset and navigation:** reset all slicers, a page navigation menu and return-to-default-view.
+- **Last Refresh On:** a visible timestamp so users can confirm data freshness.
+- **Design principles:** KPI-first layout, clear visual hierarchy, business storytelling, consistent formatting and navigation.
 
 ---
 
-## Repository Structure
+## Performance, validation and SQL cross-check
+
+**Performance:** star schema, selective columns, measure-first design, few calculated columns, clean relationship paths, appropriate fact granularity, efficient DAX and layouts tuned for rendering.
+
+**Validation:**
+- compare KPI outputs against the transformed source data
+- check consistency across the Bronze, Silver and Gold layers
+- validate joins and relationships
+- test filter interactions and DAX in different contexts
+- confirm visuals match business logic
+
+Validation baseline from the Import model: 30,848 fact rows · 20,000 orders · total revenue 7,395,903.80 · gross profit 2,073,885.02.
+
+### SQL cross-check
+
+[`sql/validation_queries.sql`](sql/validation_queries.sql) re-checks the report numbers with plain T-SQL on the Gold tables. Connect SSMS to the SQL analytics endpoint of `LH_Ecommerce` (Microsoft Entra ID login) and run it section by section. Each query is commented with the value Power BI shows:
+
+- row counts and headline KPIs (revenue, net revenue, orders, customers, gross profit, units, average order value, margin)
+- how net revenue is built: gross sales minus discount minus returns
+- order status counts and delivery, return and cancellation rates
+- net revenue by year and by month, with month-over-month change
+- net revenue by region, channel and category, and the top 5 products
+- customers: returning customers, repeat rate and customer segments
+- four quick data checks that should all return 0
+
+All values matched the report when checked. Points worth remembering when reading the numbers:
+
+- "Total Revenue" in the report is **gross** sales. "Net Revenue" is after discount and returns.
+- The fact table has one row per order item (30,848 rows) but 20,000 orders, so orders and customers are counted with `COUNT(DISTINCT ...)`.
+- Returned orders (2,040) is larger than orders with the status "Returned" (1,023), because an order can be delivered first and returned later.
+- Orders run from 1 Jan 2021 to 10 Mar 2026, so 2026 is a part year.
+
+---
+
+## Source control
+
+The workspace is connected to **Azure DevOps** through Fabric Git integration (branch `main`, Git folder `/fabric`), and the report also opens as a Power BI Project (`.pbip`) in Desktop.
+
+- Items are stored one folder each (`<name>.<Type>`) in Fabric's Git format, so changes can be reviewed in pull requests.
+- The lakehouse is versioned as metadata only, not data.
+- Rename items in the portal and let Git pick it up, rather than renaming folders by hand.
+- Workspace, lakehouse, server and item identifiers, and the account emails in the RLS table, are replaced with placeholders in this public copy.
+
+---
+
+## Repository structure
 
 ```text
-Retail-ECommerce-Sales-Analysis/
-│
+Retail-E-Commerce-Sales-Analysis/
 ├── README.md
 ├── LICENSE
 ├── .gitignore
-│
+├── assets/
+│   ├── architecture/        pipeline and semantic model diagrams
+│   ├── screenshots/         one image per report page
+│   └── icons/               icons used in the report
 ├── fabric/
-│   ├── 00_ORCH_EndToEnd_Data_Pipeline
-│   ├── 01_DFGen2_Ingestion_Transformation_DBO
-│   ├── 02_NB_Silver_Layer_Standardization.ipynb
-│   ├── 03_NB_Gold_Layer_Dimensional_Model.ipynb
-│   ├── 04_SM_Retail_ECommerce_Sales_Model
-│   └── LH_Ecommerce
-│
-├── powerbi/
-│   ├── 05_RPT_Retail_ECommerce_Sales_Analysis.pbix
-│   ├── dax-measures.md
-│   ├── rls-notes.md
-│   ├── incremental-refresh.md
-│   ├── scheduled-refresh.md
-│   ├── report-pages.md
-│   └── bookmarks-tooltips-notes.md
-│
-├── docs/
-│   ├── architecture-diagram.png
-│   ├── pipeline-screenshot.png
-│   ├── data-model-diagram.png
-│   ├── report-screenshots/
-│   ├── validation-notes.md
-│   └── prerequisites.md
-│
-└── assets/
-    ├── dashboard-cover.png
-    ├── icons/
-    └── theme-colors.md
+│   ├── notebooks/           Bronze, Silver and Gold notebooks (.ipynb)
+│   └── pipeline/            master orchestration pipeline (JSON)
+├── sql/
+│   └── validation_queries.sql   SSMS cross-check of the report numbers
+└── powerbi/
+    ├── RetailSalesAnalytics.pbip
+    ├── 07_RPT_Ecommerce_Sales_Overview.Report
+    └── 06_SM_Ecommerce_Sales.SemanticModel
 ```
 
 ---
 
-## Technology Stack
+## Technology stack
 
-- Microsoft Fabric  
-- Dataflow Gen2  
-- Fabric Pipelines  
-- Lakehouse  
-- Notebook-based transformation  
-- Power BI  
-- DAX  
-- Import Mode Semantic Model  
-- Bookmarks  
-- Tooltips  
-- Row-Level Security (RLS)  
-- Incremental Refresh  
+Microsoft Fabric · Fabric Pipelines · Lakehouse (Delta) · PySpark and Spark SQL notebooks · Power BI · DAX · Import-mode semantic model · Bookmarks and tooltips · Row-level security · Incremental refresh · Azure DevOps Git integration
 
 ---
 
 ## Conclusion
 
-This repository presents a complete retail and e-commerce analytics workflow built with Microsoft Fabric and Power BI, covering ingestion, transformation, dimensional modeling, orchestration, semantic modeling, DAX, security, refresh strategy, guided report interaction, and reporting in a single structured solution.
-
----
+This repository presents a complete retail and e-commerce analytics workflow: ingestion, medallion transformation, dimensional modeling, orchestration, semantic modeling, DAX, security, refresh strategy, guided report interaction and reporting in one structured solution.
 
 ## Connect
 
-For questions, feedback, or collaboration, connect on LinkedIn:
-
-[LinkedIn Profile](https://www.linkedin.com/in/bhushangawali148/)
+For questions, feedback or collaboration, connect on LinkedIn: [LinkedIn Profile](https://www.linkedin.com/in/bhushangawali148/)

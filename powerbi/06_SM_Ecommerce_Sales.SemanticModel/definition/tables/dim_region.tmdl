@@ -1,0 +1,34 @@
+table dim_region
+	lineageTag: 1cdaad45-2797-4c1a-b52b-82639b456f1b
+
+	/// Primary key. Joins to dim_geography[RegionID] and UserRegionAccess[RegionID].
+	column RegionID
+		dataType: string
+		lineageTag: 6736274b-2ca3-4e38-884a-30dcfbeaa95f
+		summarizeBy: none
+		sourceColumn: RegionID
+
+		annotation SummarizationSetBy = Automatic
+
+	/// US region name: Midwest, Northeast, South, West. Used as the axis in the Revenue by Region bar chart on the Overview page and as a slicer on the Details page.
+	column RegionName
+		dataType: string
+		lineageTag: 88e8a642-f72a-43b6-be9d-9fc233cb06b5
+		summarizeBy: none
+		sourceColumn: RegionName
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_region = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("<sql-endpoint-id>.datawarehouse.fabric.microsoft.com", "LH_Ecommerce"),
+				    gold_dim_region = Source{[Schema="gold",Item="dim_region"]}[Data]
+				in
+				    gold_dim_region
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

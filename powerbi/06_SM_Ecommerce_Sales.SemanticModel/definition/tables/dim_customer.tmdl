@@ -1,0 +1,150 @@
+table dim_customer
+	lineageTag: 431c735d-d6a4-42f0-949d-67d10c77fc64
+
+	/// Primary key. Joins to fact_sales_order_item[CustomerKey].
+	column CustomerKey
+		dataType: int64
+		formatString: 0
+		lineageTag: 0bfddce7-7288-4ddd-b71d-19f120889255
+		summarizeBy: none
+		sourceColumn: CustomerKey
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Business identifier for the customer. Used in data management; not displayed in report visuals.
+	column CustomerID
+		dataType: string
+		lineageTag: 8545c202-3717-4aca-bb70-bc1e21364561
+		summarizeBy: none
+		sourceColumn: CustomerID
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Full customer name. Used in detail/drill-through context; not shown as an axis in current report pages.
+	column CustomerName
+		dataType: string
+		lineageTag: 6f58d829-c68a-447f-939a-87580c017a46
+		summarizeBy: none
+		sourceColumn: CustomerName
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Customer gender. Available as a filter or dimension; not currently shown as a visual axis.
+	column Gender
+		dataType: string
+		lineageTag: 4554c563-0a33-48da-b938-679b8a898e51
+		summarizeBy: none
+		sourceColumn: Gender
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Customer age in years. Used to derive AgeBand groupings shown in the Customers by Age Group bar chart on the Customers page.
+	column Age
+		dataType: int64
+		formatString: 0
+		lineageTag: def22c0d-2a0c-45a7-b046-5d6ed15c026d
+		summarizeBy: sum
+		sourceColumn: Age
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Age group label (18-24, 25-34, 35-44, 45-54, 55+). Used as the axis in the Customers by Age Group bar chart on the Customers page.
+	column AgeBand
+		dataType: string
+		lineageTag: 1db84133-2f56-43ea-a9e2-b829b878c352
+		summarizeBy: none
+		sourceColumn: AgeBand
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Date the customer first registered. Joins to the LocalDateTable for time-based signup analysis (inactive relationship).
+	column SignupDate
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: aa90fa75-52f2-4a15-bc57-7a6036224499
+		summarizeBy: none
+		sourceColumn: SignupDate
+
+		variation Variation
+			isDefault
+			relationship: 69bf4cb3-cf79-43f0-b99c-1a9bb1696f4b
+			defaultHierarchy: LocalDateTable_aa97b8e8-6bd5-463b-a169-4dddc0f6617f.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	/// Customer classification (e.g. Individual, Corporate). Available as a filter; not currently used in report visuals.
+	column CustomerType
+		dataType: string
+		lineageTag: 801fdfe1-7e2f-4558-9a75-d17099c080ff
+		summarizeBy: none
+		sourceColumn: CustomerType
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Loyalty programme tier: Bronze, Silver, Gold, Platinum. Used as the axis in the Customers by Loyalty Tier bar chart on the Customers page.
+	column LoyaltyTier
+		dataType: string
+		lineageTag: 8ffa5a9f-1d1c-41df-b6e4-7147faa359c1
+		summarizeBy: none
+		sourceColumn: LoyaltyTier
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Channel through which the customer was first acquired (e.g. Organic, Paid). Available as a filter; not currently a visual axis.
+	column AcquisitionSource
+		dataType: string
+		lineageTag: 9cbf7645-30eb-4a76-9045-ef643c2f8664
+		summarizeBy: none
+		sourceColumn: AcquisitionSource
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Two-letter state code of the customer's home address. Available as a filter or geo-level drill-through.
+	column HomeStateCode
+		dataType: string
+		lineageTag: 62dcc9be-466f-49a0-b852-c4c9a1b7d3d8
+		summarizeBy: none
+		sourceColumn: HomeStateCode
+
+		annotation SummarizationSetBy = Automatic
+
+	/// US region of the customer's home address (Midwest, Northeast, South, West). Available as a filter; not currently a visual axis in the Customers page.
+	column HomeRegion
+		dataType: string
+		lineageTag: f13ee0f0-9ab8-4c0c-8e4b-27d71e968857
+		summarizeBy: none
+		sourceColumn: HomeRegion
+
+		annotation SummarizationSetBy = Automatic
+
+	column HomeState
+		dataType: string
+		lineageTag: 8bee5afc-77f1-4334-bc34-9525e64c85b4
+		summarizeBy: none
+		sourceColumn: HomeState
+
+		annotation SummarizationSetBy = Automatic
+
+	column CustomerSegment
+		dataType: string
+		lineageTag: f31fdf8f-72d0-491f-bec9-460f9b8f6ac7
+		summarizeBy: none
+		sourceColumn: CustomerSegment
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_customer = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("<sql-endpoint-id>.datawarehouse.fabric.microsoft.com", "LH_Ecommerce"),
+				    gold_dim_customer = Source{[Schema="gold",Item="dim_customer"]}[Data]
+				in
+				    gold_dim_customer
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

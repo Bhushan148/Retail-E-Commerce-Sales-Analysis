@@ -1,0 +1,51 @@
+table 'Last Refresh'
+	lineageTag: 71f27e3e-022f-4300-868f-8011bdb0eac4
+
+	/// Formatted last refresh timestamp string for display in report visuals.
+	measure 'Last Refresh Status' =
+			
+			"Last Refresh" &
+			UNICHAR(10) &
+			FORMAT(
+			    MAX('Last Refresh'[LastRefreshDateTime]),
+			    "dd-MMM-yyyy hh:mm:ss AM/PM",
+			    "en-IN"
+			)
+		displayFolder: 0. Support\Last Refresh
+		lineageTag: eb6de6e4-0a6f-4cbd-8c2a-e0830c347097
+
+	/// Alternate last refresh label using TODAY(). Used as a fallback display measure.
+	measure 'Last Refresh Status_' =
+			
+			"Last Refresh On " &
+			FORMAT(TODAY(), "DD MMM YYYY") &
+			" 08:15 AM"
+		displayFolder: 0. Support\Last Refresh
+		lineageTag: 4e2d3f63-e759-411d-8d37-8994d7bf59e8
+
+	column LastRefreshDateTime
+		dataType: string
+		lineageTag: 72392f68-e569-48f8-86b3-18da43b49c60
+		summarizeBy: none
+		sourceColumn: LastRefreshDateTime
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Last Refresh' = m
+		mode: import
+		source =
+				let
+				    UTCNow = DateTimeZone.UtcNow(),
+				    IndiaTime = DateTimeZone.SwitchZone(UTCNow, 5.5),
+				    FinalDateTime = DateTime.From(IndiaTime),
+				    Source = #table(
+				        {"LastRefreshDateTime"},
+				        {{FinalDateTime}}
+				    )
+				in
+				    Source
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

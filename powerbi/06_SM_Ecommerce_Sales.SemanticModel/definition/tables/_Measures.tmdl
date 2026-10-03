@@ -1,0 +1,2742 @@
+/// All report KPIs live here. Organised into 8 folders: Sales, Profitability, Customers, Order Quality, Year over Year, Time Period, Product, Channel & Region.
+table _Measures
+	lineageTag: 1a86f2ed-cd9c-4dcb-9673-925810f7a6da
+
+	/// Sum of GrossSalesUSD from fact_sales_order_item. Shown on the top KPI banner (all pages) and as the starting bar in the Revenue to Gross Profit Bridge on the Overview page. Represents gross sales before discounts or returns.
+	measure 'Total Revenue' = SUM(fact_sales_order_item[GrossSalesUSD])
+		formatString: $#,##0.00
+		displayFolder: Sales
+		lineageTag: 09d84535-4222-49d2-8e15-03b356cf4c4f
+
+	/// Sum of NetRevenueUSD from fact_sales_order_item. Core revenue figure used in the Sales page trend chart, Overview KPI selector (Revenue option), Region bar chart, Sales by Channel bar, and as the denominator in most margin and share measures.
+	measure 'Net Revenue' = SUM(fact_sales_order_item[NetRevenueUSD])
+		formatString: $#,##0.00
+		displayFolder: Sales
+		lineageTag: 991ac14a-7fe4-4915-96d9-840c5f1f928f
+
+	/// Count of distinct OrderID values. Shown on the top KPI banner (all pages) and in the Details page P&L table. Used as the denominator for Average Order Value and rate measures.
+	measure 'Total Orders' = DISTINCTCOUNT(fact_sales_order_item[OrderID])
+		formatString: #,##0
+		displayFolder: Sales
+		lineageTag: 9f36e55f-a40d-4db6-a9e3-e53ffd3eb45b
+
+	/// Sum of Quantity from fact_sales_order_item. Shown in the Details page P&L table. Used to compute Avg Units per Order.
+	measure 'Total Units Sold' = SUM(fact_sales_order_item[Quantity])
+		formatString: #,##0
+		displayFolder: Sales
+		lineageTag: fa933398-6516-49f6-ab1d-8a074b4bc282
+
+	/// Net Revenue divided by Total Orders. Shown on the top KPI banner (all pages) and in the Details page P&L table. Also available as a KPI Selector option on the Overview page combo chart.
+	measure 'Average Order Value' = DIVIDE([Net Revenue], [Total Orders], 0)
+		formatString: \$#,0.###############;(\$#,0.###############);\$#,0.###############
+		displayFolder: Sales
+		lineageTag: 442708f8-063f-4cf8-ac3d-7a77d2979950
+
+	/// Sum of GrossProfitUSD from fact_sales_order_item (Net Revenue minus Product Cost). Shown on the top KPI banner (all pages), as the final bar in the Revenue Bridge on the Overview page, and in the Details page P&L table.
+	measure 'Gross Profit' = SUM(fact_sales_order_item[GrossProfitUSD])
+		formatString: $#,##0.00
+		displayFolder: Profitability
+		lineageTag: 8e568180-05dd-4809-a82e-61ddb4656fe6
+
+	/// Gross Profit divided by Net Revenue. Shown on the Products page left KPI card (via KPIProgressListHTML_) and in the Details page P&L table. Also returned by Selected KPI Value when Profit is selected in the KPI Selector.
+	measure 'Gross Profit Margin %' = DIVIDE([Gross Profit], [Net Revenue], 0)
+		formatString: 0.00%
+		displayFolder: Profitability
+		lineageTag: 07c03e2a-60a3-4bb6-8735-6df907beefcf
+
+	/// Total Discount Amount divided by Total Revenue. Shown in the Details page P&L table. Tracks what share of gross sales is given away as discounts.
+	measure 'Discount Rate %' = DIVIDE([Total Discount Amount], [Total Revenue], 0)
+		formatString: 0.00%
+		displayFolder: Sales
+		lineageTag: 24661fa9-1343-45a8-a89b-3001f9b952ba
+
+	/// Total Returned Orders divided by Total Orders. Shown in the Details page P&L table. Measures the percentage of orders that came back as returns.
+	measure 'Return Rate %' = DIVIDE([Total Returned Orders], [Total Orders], 0)
+		formatString: 0.00%
+		displayFolder: Order Quality
+		lineageTag: acc0966e-422c-4c6d-bf30-827f9bf619a0
+
+	/// Total Cancelled Orders divided by Total Orders. Shown in the Details page P&L table. Tracks the share of orders cancelled before fulfillment.
+	measure 'Cancellation Rate %' = DIVIDE([Total Cancelled Orders], [Total Orders], 0)
+		formatString: 0.00%
+		displayFolder: Order Quality
+		lineageTag: 1d90c3e5-4419-4385-a8a4-18ab3d39f620
+
+	/// Total Delivered Orders divided by Total Orders. Shown in the Details page P&L table. Measures how many orders reached the customer successfully.
+	measure 'Delivery Rate %' = DIVIDE([Total Delivered Orders], [Total Orders], 0)
+		formatString: 0.00%
+		displayFolder: Order Quality
+		lineageTag: 9f5f0ed5-6950-4acd-ab6a-a50cff620f2a
+
+	/// Count of distinct CustomerKey values in fact_sales_order_item. Shown on the top KPI banner (all pages) and in the Details page P&L table. Also available as a KPI Selector option on the Overview page.
+	measure 'Total Customers' = DISTINCTCOUNT(fact_sales_order_item[CustomerKey])
+		formatString: #,##0
+		displayFolder: Customers
+		lineageTag: 2f3777ad-acdd-449f-be75-7495fd0272b6
+
+	/// Distinct customers whose CustomerOrderSequence equals 1 — their very first order. Shown as a KPI card on the Customers page and in the Details page P&L table.
+	measure 'New Customers' =
+			
+			VAR _MinVisibleDate = MIN(dim_date[Date])
+			VAR _MaxVisibleDate = MAX(dim_date[Date])
+			RETURN
+			COUNTROWS(
+			    FILTER(
+			        VALUES(fact_sales_order_item[CustomerKey]),
+			        VAR _FirstOrderDate =
+			            CALCULATE(
+			                MIN(fact_sales_order_item[OrderDate]),
+			                ALL(dim_date)
+			            )
+			        RETURN
+			            NOT ISBLANK(_FirstOrderDate)
+			                && _FirstOrderDate >= _MinVisibleDate
+			                && _FirstOrderDate <= _MaxVisibleDate
+			    )
+			)
+		formatString: #,##0
+		displayFolder: Customers
+		lineageTag: c41cf816-c750-4d37-b0f4-da426e1d2eec
+
+	/// Distinct customers where IsRepeatCustomer = 1. Used as the numerator for Repeat Customer Rate % and shown in the Details page P&L table (Returning Customers row).
+	measure 'Returning Customers' = CALCULATE(DISTINCTCOUNT(fact_sales_order_item[CustomerKey]), fact_sales_order_item[IsRepeatCustomer] = 1)
+		formatString: #,##0
+		displayFolder: Customers
+		lineageTag: 40aefcf7-ed89-4a4c-9648-7cd6d29b917b
+
+	/// Returning Customers divided by Total Customers. Shown as a KPI card on the Customers page and in the Details page P&L table. Measures how many buyers return for a second purchase.
+	measure 'Repeat Customer Rate %' = DIVIDE([Returning Customers], [Total Customers], 0)
+		formatString: 0.00%
+		displayFolder: Customers
+		lineageTag: 1bef89ed-a9db-4957-8610-19fe71b8a9fd
+
+	/// Estimated lifetime revenue per customer: Average Order Value × Purchase Frequency × Avg Lifespan in years. Shown as a KPI card on the Customers page and in the Details page P&L table. Lifespan is calculated across ALL(dim_date) so it is filter-independent.
+	measure 'Customer Lifetime Value' =
+			VAR _MinDate = CALCULATE(MIN(fact_sales_order_item[OrderDate]), ALL(dim_date))
+			VAR _MaxDate = CALCULATE(MAX(fact_sales_order_item[OrderDate]), ALL(dim_date))
+			VAR AvgLifespanYrs =
+			    DIVIDE(
+			        DATEDIFF(_MinDate, _MaxDate, MONTH),
+			        12, 0
+			    )
+			VAR PurchaseFreq = DIVIDE([Total Orders], [Total Customers], 0)
+			RETURN
+			    [Average Order Value] * PurchaseFreq * AvgLifespanYrs
+		formatString: $#,##0.00
+		displayFolder: Customers
+		lineageTag: ac16ba5b-8029-46da-bc11-c7644307b50e
+
+	/// Net Revenue change vs the previous calendar month using DATEADD(-1, MONTH). Shown in the MoM badge on the Total Revenue KPI HTML card (all pages). Also returned by Selected KPI MoM % when Revenue is selected on the Overview page.
+	measure 'Revenue MoM %' =
+			VAR CurrentRevenue = [Net Revenue]
+			VAR PriorMonthRevenue =
+			    CALCULATE(
+			        [Net Revenue],
+			        DATEADD(dim_date[Date], -1, MONTH)
+			    )
+			RETURN
+			    DIVIDE(CurrentRevenue - PriorMonthRevenue, PriorMonthRevenue, BLANK())
+		formatString: +0.00%;-0.00%;0.00%
+		displayFolder: Time Intelligence
+		lineageTag: fe5ce91a-09a5-40f6-80ef-7b5761b5b2ef
+
+	/// Net Revenue change vs the same period last year using Net Revenue LY. Shown in the YoY badge on the Total Revenue KPI HTML card (all pages). Also returned by Selected KPI YoY % when Revenue is selected on the Overview page.
+	measure 'Revenue YoY %' = DIVIDE([Net Revenue] - [Net Revenue LY], [Net Revenue LY], BLANK())
+		formatString: +0.00%;-0.00%;0.00%
+		displayFolder: Time Intelligence
+		lineageTag: 86739fa4-9ce5-4a2d-83f3-48c1c160fef1
+
+	/// Net Revenue for the current row divided by total Net Revenue across all products, geographies, and customers. Shown in the Product Performance Detail table on the Products page (Revenue Contribution % column).
+	measure 'Revenue Contribution %' =
+			DIVIDE(
+			    [Net Revenue],
+			    CALCULATE([Net Revenue], ALL(dim_product), ALL(dim_geography), ALL(dim_customer)),
+			    0
+			)
+		formatString: 0.00%;-0.00%;0.00%
+		displayFolder: Products
+		lineageTag: 32ed7585-d272-4df2-9f1a-cc384b13e497
+
+	/// Total Orders change vs the same period last year. Shown in the YoY badge on the Total Orders KPI HTML card (all pages). Also returned by Selected KPI YoY % when Orders is selected on the Overview page.
+	measure 'Orders YoY %' = DIVIDE([Total Orders] - [Total Orders LY], [Total Orders LY], BLANK())
+		formatString: +0.00%;-0.00%;0.00%
+		displayFolder: Time Intelligence
+		lineageTag: 11b6c9f0-c6f7-4dd7-922c-f781086b9c42
+
+	/// Total Customers change vs the same period last year. Shown in the YoY badge on the Total Customers KPI HTML card (all pages). Also returned by Selected KPI YoY % when Customers is selected on the Overview page.
+	measure 'Customers YoY %' = DIVIDE([Total Customers] - [Total Customers LY], [Total Customers LY], BLANK())
+		formatString: +0.00%;-0.00%;0.00%
+		displayFolder: Time Intelligence
+		lineageTag: 0780c8f5-8500-464e-b83b-1aa022b1760a
+
+	/// Sum of DiscountUSD from fact_sales_order_item. Used in the Revenue to Gross Profit Bridge on the Overview page (Discounts bar) and in the Details page P&L table (Discounts Applied row).
+	measure 'Total Discount Amount' = SUM(fact_sales_order_item[DiscountUSD])
+		formatString: $#,##0.00
+		displayFolder: Sales
+		lineageTag: e54b0bb7-a9a1-49e3-9683-f17b0c0a5d2d
+
+	/// Total Units Sold divided by Total Orders. Shown in the Details page P&L table. Indicates how many product units a typical order contains.
+	measure 'Avg Units per Order' = DIVIDE([Total Units Sold], [Total Orders], 0)
+		formatString: 0.00
+		displayFolder: Sales
+		lineageTag: 11653045-d422-4d0a-9299-c841d41d5632
+
+	/// Gross Profit change vs the same period last year using Gross Profit LY. Shown in the YoY badge on the Gross Profit KPI HTML card (all pages). Also returned by Selected KPI YoY % when Profit is selected on the Overview page.
+	measure 'Gross Profit YoY %' = DIVIDE([Gross Profit] - [Gross Profit LY], [Gross Profit LY], BLANK())
+		formatString: +0.00%;-0.00%;0.00%
+		displayFolder: Time Intelligence
+		lineageTag: 3ca60655-b031-4b9a-8894-7052cf5983c6
+
+	/// Sum of ReturnAmountUSD from fact_sales_order_item. Used in the Revenue to Gross Profit Bridge on the Overview page (Returns bar) and in the Details page P&L table (Returns & Refunds row).
+	measure 'Total Return Revenue Loss' = SUM(fact_sales_order_item[ReturnAmountUSD])
+		formatString: $#,##0.00
+		displayFolder: Profitability
+		lineageTag: 302fc3b8-dfe0-4ad0-af0c-9222854b07c0
+
+	/// Count of distinct OrderIDs where IsDelivered = 1. Used in the Revenue by Order Status chart on the Sales page and in the Details page P&L table (Delivery Rate % denominator).
+	measure 'Total Delivered Orders' = CALCULATE(DISTINCTCOUNT(fact_sales_order_item[OrderID]), fact_sales_order_item[IsDelivered] = 1)
+		formatString: #,##0
+		displayFolder: Order Quality
+		lineageTag: 826287a4-39f1-47db-a203-ebf1cb76b599
+
+	/// Count of distinct OrderIDs where IsReturned = 1. Used in the Revenue by Order Status chart on the Sales page and as the numerator for Return Rate % in the Details page P&L table.
+	measure 'Total Returned Orders' = CALCULATE(DISTINCTCOUNT(fact_sales_order_item[OrderID]), fact_sales_order_item[IsReturned] = 1)
+		formatString: #,##0
+		displayFolder: Order Quality
+		lineageTag: baa5e45e-3a34-4344-998e-43f963a68496
+
+	/// Count of distinct OrderIDs where IsCancelled = 1. Used in the Revenue by Order Status chart on the Sales page and as the numerator for Cancellation Rate % in the Details page P&L table.
+	measure 'Total Cancelled Orders' = CALCULATE(DISTINCTCOUNT(fact_sales_order_item[OrderID]), fact_sales_order_item[IsCancelled] = 1)
+		formatString: #,##0
+		displayFolder: Order Quality
+		lineageTag: f1a8c37e-4e6b-49b6-9617-9325feb8f57d
+
+	/// Average Order Value change vs the same period last year using AOV LY. Shown in the YoY badge on the Average Order Value KPI HTML card (all pages). Also returned by Selected KPI YoY % when AOV is selected on the Overview page.
+	measure 'Avg Order Value YoY %' = DIVIDE([Average Order Value] - [AOV LY], [AOV LY], BLANK())
+		formatString: +0.00%;-0.00%;0.00%
+		displayFolder: Time Intelligence
+		lineageTag: 368878f4-7747-4f49-b99a-7bc72f1ac031
+
+	/// Count of distinct ProductKeys where dim_product[IsActive] = 1. Shown on the Products page left KPI card (via KPIProgressListHTML_ measure). Represents the live catalogue size.
+	measure 'Total Active Products' = CALCULATE(DISTINCTCOUNT(dim_product[ProductKey]), dim_product[IsActive] = 1)
+		formatString: #,##0
+		displayFolder: Products
+		lineageTag: 207cd95e-564c-47fd-8ce5-21c8fc5a365d
+
+	/// Net Revenue divided by distinct count of SKUs. Shown on the Products page left KPI card (via KPIProgressListHTML_ measure). Tracks average revenue generated per individual SKU.
+	measure 'Product Revenue per SKU' = DIVIDE([Net Revenue], DISTINCTCOUNT(dim_product[SKU]), 0)
+		formatString: $#,##0.00
+		displayFolder: Products
+		lineageTag: 8d134ede-ab37-4ff2-8e7f-a83d3d496121
+
+	/// Net Revenue minus Net Revenue LY — the absolute dollar difference year over year. Available as a tooltip or supplementary metric. Positive means growth vs the same period last year.
+	measure 'Revenue Variance vs LY $' = [Net Revenue] - [Net Revenue LY]
+		formatString: $#,##0.00
+		displayFolder: Sales
+		lineageTag: cb2227dc-4c9f-4845-925a-3c5adfa7ebeb
+
+	/// Orders minus Cancelled Orders divided by Total Orders. Shown in the Details page P&L table. Measures share of orders that entered fulfillment.
+	measure 'Fulfillment Rate %' = DIVIDE([Total Orders] - [Total Cancelled Orders], [Total Orders], 0)
+		formatString: 0.00%
+		displayFolder: Order Quality
+		lineageTag: 6b083cdf-41b1-4885-aa60-d7f34d2d2f2f
+
+	/// Gross Profit for the same period last year. Used as the LY benchmark in the Gross Profit KPI HTML card and as the denominator in Gross Profit YoY %. Also returned by Selected KPI LY when Profit is selected.
+	measure 'Gross Profit LY' = CALCULATE([Gross Profit], DATEADD(dim_date[Date], -1, YEAR))
+		formatString: $#,##0.00
+		displayFolder: Profitability
+		lineageTag: 45cadbaf-cfec-4c45-b178-4611934d3da1
+
+	/// Total Orders change vs the previous calendar month. Shown in the MoM badge on the Total Orders KPI HTML card (all pages). Also returned by Selected KPI MoM % when Orders is selected on the Overview page.
+	measure 'Orders MoM %' =
+			VAR CurrOrders = [Total Orders]
+			VAR PriorMonthOrders = CALCULATE([Total Orders], DATEADD(dim_date[Date], -1, MONTH))
+			RETURN DIVIDE(CurrOrders - PriorMonthOrders, PriorMonthOrders, BLANK())
+		formatString: +0.00%;-0.00%;0.00%
+		displayFolder: Time Intelligence
+		lineageTag: cbd06196-540b-4946-92b9-009223c210cd
+
+	/// Total Customers change vs the previous calendar month. Shown in the MoM badge on the Total Customers KPI HTML card and in the Customer Growth & Retention Trend bar chart on the Customers page. Also returned by Selected KPI MoM % when Customers is selected.
+	measure 'Customers MoM %' =
+			VAR CurrCust = [Total Customers]
+			VAR PriorMonthCust = CALCULATE([Total Customers], DATEADD(dim_date[Date], -1, MONTH))
+			RETURN DIVIDE(CurrCust - PriorMonthCust, PriorMonthCust, BLANK())
+		formatString: +0.00%;-0.00%;0.00%
+		displayFolder: Time Intelligence
+		lineageTag: 7f60dd20-ec35-45ea-9e26-59df2f6ab674
+
+	/// Gross Profit change vs the previous calendar month. Shown in the MoM badge on the Gross Profit KPI HTML card (all pages). Also returned by Selected KPI MoM % when Profit is selected on the Overview page.
+	measure 'Gross Profit MoM %' =
+			VAR CurrGP = [Gross Profit]
+			VAR PriorMonthGP = CALCULATE([Gross Profit], DATEADD(dim_date[Date], -1, MONTH))
+			RETURN DIVIDE(CurrGP - PriorMonthGP, PriorMonthGP, BLANK())
+		formatString: +0.00%;-0.00%;0.00%
+		displayFolder: Time Intelligence
+		lineageTag: 77d56e7a-e833-4dc9-ae2c-bf50b292d08e
+
+	/// Average Order Value change vs the previous calendar month. Shown in the MoM badge on the Average Order Value KPI HTML card (all pages). Also returned by Selected KPI MoM % when AOV is selected on the Overview page.
+	measure 'AOV MoM %' =
+			VAR CurrAOV = [Average Order Value]
+			VAR PriorMonthAOV = CALCULATE([Average Order Value], DATEADD(dim_date[Date], -1, MONTH))
+			RETURN DIVIDE(CurrAOV - PriorMonthAOV, PriorMonthAOV, BLANK())
+		formatString: +0.00%;-0.00%;0.00%
+		displayFolder: Time Intelligence
+		lineageTag: 7da13780-abb2-4a03-b1a0-daa13e7b84a8
+
+	/// Net Revenue for the exact same period one year ago using DATEADD(-1, YEAR). Used as the LY benchmark in the KPI HTML cards (all pages), returned by Selected KPI LY when Revenue is selected, and shown in the Product Performance Detail table (Net Revenue LY column).
+	measure 'Net Revenue LY' = CALCULATE([Net Revenue], DATEADD(dim_date[Date], -1, YEAR))
+		formatString: $#,##0.00
+		displayFolder: Time Intelligence
+		lineageTag: dda4a11b-1761-454f-8954-980da5698266
+
+	/// Total Orders for the same period last year. Used as the LY benchmark in the Total Orders KPI HTML card and returned by Selected KPI LY when Orders is selected on the Overview page.
+	measure 'Total Orders LY' = CALCULATE([Total Orders], DATEADD(dim_date[Date], -1, YEAR))
+		formatString: #,##0
+		displayFolder: Time Intelligence
+		lineageTag: 4a12c9e3-32f6-4117-b620-f3b0fbbe9ce3
+
+	/// Total Customers for the same period last year. Used as the LY benchmark in the Total Customers KPI HTML card and returned by Selected KPI LY when Customers is selected on the Overview page.
+	measure 'Total Customers LY' = CALCULATE([Total Customers], DATEADD(dim_date[Date], -1, YEAR))
+		formatString: #,##0
+		displayFolder: Time Intelligence
+		lineageTag: be380295-b618-42b6-b91c-c3383e91aff5
+
+	/// Average Order Value for the same period last year. Used as the LY benchmark in the Average Order Value KPI HTML card and as the denominator in Avg Order Value YoY %. Also returned by Selected KPI LY when AOV is selected.
+	measure 'AOV LY' = CALCULATE([Average Order Value], DATEADD(dim_date[Date], -1, YEAR))
+		formatString: $#,##0.00
+		displayFolder: Time Intelligence
+		lineageTag: a7a84c6c-df32-430c-bc7a-2d3a472ad402
+
+	/// SWITCH on the KPI Selector slicer selection (Overview page). Returns Net Revenue, Total Orders, Total Customers, Gross Profit, or Average Order Value. Used as the bar/column value in the Monthly Revenue with Growth % combo chart on the Overview page.
+	measure 'Selected KPI Value' =
+			VAR SelectedMetric = SELECTEDVALUE('KPI Selector'[KPI Selector], "Net Revenue")
+			RETURN
+			SWITCH(
+			    SelectedMetric,
+			    "Net Revenue",      [Net Revenue],
+			    "Total Orders",     [Total Orders],
+			    "Total Customers",  [Total Customers],
+			    "Gross Profit",     [Gross Profit],
+			    "Avg Order Value",  [Average Order Value],
+			    [Net Revenue]
+			)
+		displayFolder: Field Parameters
+		lineageTag: a3f0961d-59da-48ee-964c-060e7c549bed
+
+	/// SWITCH on the KPI Selector slicer selection. Returns the YoY % for whichever KPI is active. Used as the line value in the Monthly Revenue with Growth % combo chart on the Overview page, showing year-over-year trend for the selected metric.
+	measure 'Selected KPI YoY %' =
+			VAR SelectedMetric = SELECTEDVALUE('KPI Selector'[KPI Selector], "Net Revenue")
+			RETURN
+			SWITCH(
+			    SelectedMetric,
+			    "Net Revenue",      [Revenue YoY %],
+			    "Total Orders",     [Orders YoY %],
+			    "Total Customers",  [Customers YoY %],
+			    "Gross Profit",     [Gross Profit YoY %],
+			    "Avg Order Value",  [Avg Order Value YoY %],
+			    [Revenue YoY %]
+			)
+		formatString: +0.00%;-0.00%;0.00%
+		displayFolder: Field Parameters
+		lineageTag: f1b1938a-db7b-4868-b384-553ec05d3020
+
+	/// SWITCH on the KPI Selector slicer selection. Returns the MoM % for whichever KPI is active. Available as a supplementary metric on the Overview page combo chart for month-over-month trend of the selected KPI.
+	measure 'Selected KPI MoM %' =
+			VAR SelectedMetric = SELECTEDVALUE('KPI Selector'[KPI Selector], "Net Revenue")
+			RETURN
+			SWITCH(
+			    SelectedMetric,
+			    "Net Revenue",      [Revenue MoM %],
+			    "Total Orders",     [Orders MoM %],
+			    "Total Customers",  [Customers MoM %],
+			    "Gross Profit",     [Gross Profit MoM %],
+			    "Avg Order Value",  [AOV MoM %],
+			    [Revenue MoM %]
+			)
+		formatString: +0.00%;-0.00%;0.00%
+		displayFolder: Field Parameters
+		lineageTag: 17b898f8-b55a-49f7-8eab-95a6722a6498
+
+	/// SWITCH on the KPI Selector slicer selection. Returns the prior-year value (LY) for whichever KPI is selected. Used as the Target value on KPI visual cards so the directional arrow and variance display correctly.
+	measure 'Selected KPI LY' =
+			VAR SelectedMetric = SELECTEDVALUE('KPI Selector'[KPI Selector], "Net Revenue")
+			RETURN
+			SWITCH(
+			    SelectedMetric,
+			    "Net Revenue",      [Net Revenue LY],
+			    "Total Orders",     [Total Orders LY],
+			    "Total Customers",  [Total Customers LY],
+			    "Gross Profit",     [Gross Profit LY],
+			    "Avg Order Value",  [AOV LY],
+			    [Net Revenue LY]
+			)
+		displayFolder: Field Parameters
+		lineageTag: cc8d341b-f4a9-4a08-8d58-ca556124737f
+
+	/// Returns the display label text for the selected KPI (e.g. 'Net Revenue', 'Total Orders'). Used as a dynamic title in the Overview page combo chart heading so the chart title updates when a different KPI is selected.
+	measure 'KPI Card Title' =
+			VAR SelectedMetric = SELECTEDVALUE('KPI Selector'[KPI Selector], "Net Revenue")
+			RETURN
+			SWITCH(
+			    SelectedMetric,
+			    "Net Revenue",     "Net Revenue",
+			    "Total Orders",    "Total Orders",
+			    "Total Customers", "Total Customers",
+			    "Gross Profit",    "Gross Profit",
+			    "Avg Order Value", "Avg Order Value",
+			    "Net Revenue"
+			)
+		displayFolder: Field Parameters
+		lineageTag: d361de5f-9fe6-4c63-b372-d2b1dca70efe
+
+	/// SWITCH on the _Detail Rows[Row Label] column. Returns the correct current-period value for each row in the Financial Performance Details matrix on the Details page. Drop as the Values field in the matrix with _Detail Rows[Row Label] as rows and dim_date[Year] as columns.
+	measure 'P&L Statement Value' =
+			VAR RowLabel = SELECTEDVALUE('_Detail Rows'[Row Label], "Net Revenue")
+			RETURN
+			SWITCH(
+			    RowLabel,
+			    "Gross Sales Revenue",    [Total Revenue],
+			    "(-) Discounts Applied",  [Total Discount Amount],
+			    "(-) Returns & Refunds",  [Total Return Revenue Loss],
+			    "= Net Revenue",          [Net Revenue],
+			    "(-) Product Cost",       [Total Product Cost],
+			    "= Gross Profit",         [Gross Profit],
+			    "Gross Profit Margin %",  [Gross Profit Margin %],
+			    "Discount Rate %",        [Discount Rate %],
+			    "Total Orders",           [Total Orders],
+			    "Average Order Value",    [Average Order Value],
+			    "Total Units Sold",       [Total Units Sold],
+			    "Avg Units per Order",    [Avg Units per Order],
+			    "Total Customers",        [Total Customers],
+			    "New Customers",          [New Customers],
+			    "Returning Customers",    [Returning Customers],
+			    "Repeat Customer Rate %", [Repeat Customer Rate %],
+			    "Customer Lifetime Value",[Customer Lifetime Value],
+			    "Delivery Rate %",        [Delivery Rate %],
+			    "Return Rate %",          [Return Rate %],
+			    "Cancellation Rate %",    [Cancellation Rate %],
+			    "Fulfillment Rate %",     [Fulfillment Rate %],
+			    [Net Revenue]
+			)
+		displayFolder: Visuals & HTML
+		lineageTag: ec82e8e7-3762-4a11-a9c0-2065a504c776
+
+	/// SWITCH on _Detail Rows[Row Label]. Returns the YoY % change for each row in the Financial Performance Details matrix on the Details page. Used as a second Values field alongside P&L Statement Value to show current vs prior year growth.
+	measure 'P&L YoY Change' =
+			VAR RowLabel = SELECTEDVALUE('_Detail Rows'[Row Label], "Net Revenue")
+			VAR CurrVal =
+			    SWITCH(
+			        RowLabel,
+			        "Gross Sales Revenue",    [Total Revenue],
+			        "(-) Discounts Applied",  [Total Discount Amount],
+			        "(-) Returns & Refunds",  [Total Return Revenue Loss],
+			        "= Net Revenue",          [Net Revenue],
+			        "(-) Product Cost",       [Total Product Cost],
+			        "= Gross Profit",         [Gross Profit],
+			        "Gross Profit Margin %",  [Gross Profit Margin %],
+			        "Discount Rate %",        [Discount Rate %],
+			        "Total Orders",           [Total Orders],
+			        "Average Order Value",    [Average Order Value],
+			        "Total Units Sold",       [Total Units Sold],
+			        "Avg Units per Order",    [Avg Units per Order],
+			        "Total Customers",        [Total Customers],
+			        "New Customers",          [New Customers],
+			        "Returning Customers",    [Returning Customers],
+			        "Repeat Customer Rate %", [Repeat Customer Rate %],
+			        "Customer Lifetime Value",[Customer Lifetime Value],
+			        "Delivery Rate %",        [Delivery Rate %],
+			        "Return Rate %",          [Return Rate %],
+			        "Cancellation Rate %",    [Cancellation Rate %],
+			        "Fulfillment Rate %",     [Fulfillment Rate %],
+			        [Net Revenue]
+			    )
+			VAR PriorVal = CALCULATE(CurrVal, DATEADD(dim_date[Date], -1, YEAR))
+			RETURN DIVIDE(CurrVal - PriorVal, ABS(PriorVal), BLANK())
+		formatString: +0.00%;-0.00%;0.00%
+		displayFolder: Visuals & HTML
+		lineageTag: 70ad2243-52be-4ded-8c82-57ccc9c64a92
+
+	/// SWITCH on _Detail Rows[Row Label]. Returns the prior-year value for each row in the Financial Performance Details matrix on the Details page. Shown in the LY column of the Financial Performance Details table.
+	measure 'P&L Statement Value (LY)' =
+			VAR RowLabel = SELECTEDVALUE('_Detail Rows'[Row Label], "Net Revenue")
+			VAR CurrVal =
+			    SWITCH(
+			        RowLabel,
+			        "Gross Sales Revenue",    [Total Revenue],
+			        "(-) Discounts Applied",  [Total Discount Amount],
+			        "(-) Returns & Refunds",  [Total Return Revenue Loss],
+			        "= Net Revenue",          [Net Revenue],
+			        "(-) Product Cost",       [Total Product Cost],
+			        "= Gross Profit",         [Gross Profit],
+			        "Gross Profit Margin %",  [Gross Profit Margin %],
+			        "Discount Rate %",        [Discount Rate %],
+			        "Total Orders",           [Total Orders],
+			        "Average Order Value",    [Average Order Value],
+			        "Total Units Sold",       [Total Units Sold],
+			        "Avg Units per Order",    [Avg Units per Order],
+			        "Total Customers",        [Total Customers],
+			        "New Customers",          [New Customers],
+			        "Returning Customers",    [Returning Customers],
+			        "Repeat Customer Rate %", [Repeat Customer Rate %],
+			        "Customer Lifetime Value",[Customer Lifetime Value],
+			        "Delivery Rate %",        [Delivery Rate %],
+			        "Return Rate %",          [Return Rate %],
+			        "Cancellation Rate %",    [Cancellation Rate %],
+			        "Fulfillment Rate %",     [Fulfillment Rate %],
+			        [Net Revenue]
+			    )
+			RETURN CALCULATE(CurrVal, DATEADD(dim_date[Date], -1, YEAR))
+		displayFolder: Visuals & HTML
+		lineageTag: c32af9c9-9ef5-4c96-ae2d-277500c8e95d
+
+	/// Plain-text one-line summary for Total Revenue: shows MoM arrow + % and YoY arrow + %. Use as a subtitle text label below a card visual or tooltip value instead of the full HTML card when a simpler display is needed.
+	measure 'Total Revenue KPI Line' =
+			
+			VAR MoM = [Revenue MoM %]
+			VAR YoY = [Revenue YoY %]
+			VAR MoMArrow = IF(MoM >= 0, "▲", "▼")
+			VAR YoYArrow = IF(YoY >= 0, "▲", "▼")
+			RETURN
+			MoMArrow & " " & FORMAT(ABS(MoM), "0.0%") & " MoM   |   " &
+			YoYArrow & " " & FORMAT(ABS(YoY), "0.0%") & " YoY"
+		displayFolder: Visuals & HTML
+		lineageTag: c582dde3-a855-406c-a29f-6f44efd3bb60
+
+	/// Self-contained HTML card for Total Revenue. Displayed on all report pages in the top KPI banner strip. Shows the formatted value with orange top accent, MoM badge, and YoY badge in colour-coded arrows.
+	measure 'Total Revenue KPI HTML' =
+			
+			VAR Curr = [Total Revenue]
+			VAR MoM = [Revenue MoM %]
+			VAR YoY = [Revenue YoY %]
+			
+			VAR CurrFormatted =
+			    SWITCH(
+			        TRUE(),
+			        ABS(Curr) >= 1000000000, "$" & FORMAT(DIVIDE(Curr, 1000000000), "0.00") & "B",
+			        ABS(Curr) >= 1000000,    "$" & FORMAT(DIVIDE(Curr, 1000000), "0.00") & "M",
+			        ABS(Curr) >= 1000,       "$" & FORMAT(DIVIDE(Curr, 1000), "0.00") & "K",
+			        "$" & FORMAT(Curr, "#,0")
+			    )
+			
+			VAR MoMArrow =
+			    IF(MoM >= 0, "▲", "▼")
+			
+			VAR YoYArrow =
+			    IF(YoY >= 0, "▲", "▼")
+			
+			VAR MoMColor =
+			    IF(MoM >= 0, "#22c55e", "#ef4444")
+			
+			VAR YoYColor =
+			    IF(YoY >= 0, "#22c55e", "#ef4444")
+			
+			VAR MoMText =
+			    IF(
+			        ISBLANK(MoM),
+			        "NA",
+			        MoMArrow & " " & FORMAT(ABS(MoM), "0.0%") & " MoM"
+			    )
+			
+			VAR YoYText =
+			    IF(
+			        ISBLANK(YoY),
+			        "NA",
+			        YoYArrow & " " & FORMAT(ABS(YoY), "0.0%") & " YoY"
+			    )
+			
+			RETURN
+			"
+			<div style='
+			    width:210px;
+			    padding:0;
+			    border-radius:8px;
+			    background:#232F3E;
+			    font-family:Segoe UI, Arial, sans-serif;
+			    overflow:hidden;
+			    text-align:center;
+			'>
+			    <div style='
+			        height:6px;
+			        width:100%;
+			        background:#E66C37;
+			    '></div>
+			
+			    <div style='
+			        padding:12px 14px;
+			    '>
+			        <div style='
+			            font-size:14px;
+			            color:#cbd5e1;
+			            font-weight:600;
+			            letter-spacing:0.2px;
+			            margin-bottom:4px;
+			            line-height:1.2;
+			            text-align:center;
+			        '>
+			            Total Revenue
+			        </div>
+			
+			        <div style='
+			            font-size:26px;
+			            font-weight:700;
+			            color:#ffffff;
+			            line-height:1.05;
+			            margin-bottom:8px;
+			            text-align:center;
+			        '>
+			            " & CurrFormatted & "
+			        </div>
+			
+			        <div style='
+			            display:flex;
+			            align-items:center;
+			            justify-content:center;
+			            gap:6px;
+			            font-size:12px;
+			            font-weight:700;
+			            border-top:1px solid rgba(255,255,255,0.10);
+			            padding-top:8px;
+			            line-height:1.2;
+			            text-align:center;
+			        '>
+			            <div style='color:" & MoMColor & "; white-space:nowrap; text-align:center;'>
+			                " & MoMText & "
+			            </div>
+			
+			            <div style='color:#94a3b8; text-align:center;'>|</div>
+			
+			            <div style='color:" & YoYColor & "; white-space:nowrap; text-align:center;'>
+			                " & YoYText & "
+			            </div>
+			        </div>
+			    </div>
+			</div>
+			"
+		displayFolder: Visuals & HTML
+		lineageTag: 558f86d3-a8dd-43e0-9347-1dc2fdb5a727
+
+	/// Sum of ProductCostUSD from fact_sales_order_item. Used in the Revenue to Gross Profit Bridge on the Overview page (Product Cost bar) and in the Details page P&L table (Product Cost row).
+	measure 'Total Product Cost' = SUM(fact_sales_order_item[ProductCostUSD])
+		formatString: $#,##0.00
+		displayFolder: Profitability
+		lineageTag: 54bef4b2-083a-44d5-bf8e-7046f9d6198e
+
+	/// Self-contained HTML card for Total Orders. Displayed on all report pages in the top KPI banner strip. Shows formatted order count with MoM and YoY trend badges.
+	measure 'Total Orders KPI HTML' =
+			
+			VAR Curr = [Total Orders]
+			VAR MoM = [Orders MoM %]
+			VAR YoY = [Orders YoY %]
+			
+			VAR CurrFormatted =
+			    SWITCH(
+			        TRUE(),
+			        ABS(Curr) >= 1000000000, FORMAT(DIVIDE(Curr, 1000000000), "0.00") & "B",
+			        ABS(Curr) >= 1000000,    FORMAT(DIVIDE(Curr, 1000000), "0.00") & "M",
+			        ABS(Curr) >= 1000,       FORMAT(DIVIDE(Curr, 1000), "0.00") & "K",
+			        FORMAT(Curr, "#,0")
+			    )
+			
+			VAR MoMArrow =
+			    IF(MoM >= 0, "▲", "▼")
+			
+			VAR YoYArrow =
+			    IF(YoY >= 0, "▲", "▼")
+			
+			VAR MoMColor =
+			    IF(MoM >= 0, "#22c55e", "#ef4444")
+			
+			VAR YoYColor =
+			    IF(YoY >= 0, "#22c55e", "#ef4444")
+			
+			VAR MoMText =
+			    IF(
+			        ISBLANK(MoM),
+			        "NA",
+			        MoMArrow & " " & FORMAT(ABS(MoM), "0.0%") & " MoM"
+			    )
+			
+			VAR YoYText =
+			    IF(
+			        ISBLANK(YoY),
+			        "NA",
+			        YoYArrow & " " & FORMAT(ABS(YoY), "0.0%") & " YoY"
+			    )
+			
+			RETURN
+			"
+			<div style='
+			    width:210px;
+			    padding:0;
+			    border-radius:8px;
+			    background:#232F3E;
+			    font-family:Segoe UI, Arial, sans-serif;
+			    overflow:hidden;
+			    text-align:center;
+			'>
+			    <div style='
+			        height:6px;
+			        width:100%;
+			        background:#E66C37;
+			    '></div>
+			
+			    <div style='
+			        padding:12px 14px;
+			    '>
+			        <div style='
+			            font-size:14px;
+			            color:#cbd5e1;
+			            font-weight:600;
+			            letter-spacing:0.2px;
+			            margin-bottom:4px;
+			            line-height:1.2;
+			            text-align:center;
+			        '>
+			            Total Orders
+			        </div>
+			
+			        <div style='
+			            font-size:26px;
+			            font-weight:700;
+			            color:#ffffff;
+			            line-height:1.05;
+			            margin-bottom:8px;
+			            text-align:center;
+			        '>
+			            " & CurrFormatted & "
+			        </div>
+			
+			        <div style='
+			            display:flex;
+			            align-items:center;
+			            justify-content:center;
+			            gap:6px;
+			            font-size:12px;
+			            font-weight:700;
+			            border-top:1px solid rgba(255,255,255,0.10);
+			            padding-top:8px;
+			            line-height:1.2;
+			            text-align:center;
+			        '>
+			            <div style='color:" & MoMColor & "; white-space:nowrap; text-align:center;'>
+			                " & MoMText & "
+			            </div>
+			
+			            <div style='color:#94a3b8; text-align:center;'>|</div>
+			
+			            <div style='color:" & YoYColor & "; white-space:nowrap; text-align:center;'>
+			                " & YoYText & "
+			            </div>
+			        </div>
+			    </div>
+			</div>
+			"
+		displayFolder: Visuals & HTML
+		lineageTag: 3448c52b-e186-4bd3-918e-f6b046e6aaa6
+
+	/// Self-contained HTML card for Total Customers. Displayed on all report pages in the top KPI banner strip. Shows formatted customer count with MoM and YoY trend badges.
+	measure 'Total Customers KPI HTML' =
+			
+			VAR Curr = [Total Customers]
+			VAR MoM = [Customers MoM %]
+			VAR YoY = [Customers YoY %]
+			
+			VAR CurrFormatted =
+			    FORMAT(Curr, "#,0")
+			
+			VAR MoMArrow = IF(MoM >= 0, "▲", "▼")
+			VAR YoYArrow = IF(YoY >= 0, "▲", "▼")
+			
+			VAR MoMColor = IF(MoM >= 0, "#22c55e", "#ef4444")
+			VAR YoYColor = IF(YoY >= 0, "#22c55e", "#ef4444")
+			
+			VAR MoMText =
+			    IF(
+			        ISBLANK(MoM),
+			        "NA",
+			        MoMArrow & " " & FORMAT(ABS(MoM), "0.0%") & " MoM"
+			    )
+			
+			VAR YoYText =
+			    IF(
+			        ISBLANK(YoY),
+			        "NA",
+			        YoYArrow & " " & FORMAT(ABS(YoY), "0.0%") & " YoY"
+			    )
+			
+			RETURN
+			"
+			<div style='
+			    width:210px;
+			    padding:0;
+			    border-radius:8px;
+			    background:#232F3E;
+			    font-family:Segoe UI, Arial, sans-serif;
+			    overflow:hidden;
+			    text-align:center;
+			'>
+			    <div style='
+			        height:6px;
+			        width:100%;
+			        background:#E66C37;
+			    '></div>
+			
+			    <div style='
+			        padding:12px 14px;
+			    '>
+			        <div style='
+			            font-size:14px;
+			            color:#cbd5e1;
+			            font-weight:600;
+			            letter-spacing:0.2px;
+			            margin-bottom:4px;
+			            line-height:1.2;
+			            text-align:center;
+			        '>
+			            Total Customers
+			        </div>
+			
+			        <div style='
+			            font-size:26px;
+			            font-weight:700;
+			            color:#ffffff;
+			            line-height:1.05;
+			            margin-bottom:8px;
+			            text-align:center;
+			        '>
+			            " & CurrFormatted & "
+			        </div>
+			
+			        <div style='
+			            display:flex;
+			            align-items:center;
+			            justify-content:center;
+			            gap:6px;
+			            font-size:12px;
+			            font-weight:700;
+			            border-top:1px solid rgba(255,255,255,0.10);
+			            padding-top:8px;
+			            line-height:1.2;
+			            text-align:center;
+			        '>
+			            <div style='color:" & MoMColor & "; white-space:nowrap; text-align:center;'>
+			                " & MoMText & "
+			            </div>
+			
+			            <div style='color:#94a3b8; text-align:center;'>|</div>
+			
+			            <div style='color:" & YoYColor & "; white-space:nowrap; text-align:center;'>
+			                " & YoYText & "
+			            </div>
+			        </div>
+			    </div>
+			</div>
+			"
+		displayFolder: Visuals & HTML
+		lineageTag: b1d44590-f63b-4ac4-babd-0744f779c1ec
+
+	/// Self-contained HTML card for Average Order Value. Displayed on all report pages in the top KPI banner strip. Shows formatted AOV with MoM and YoY trend badges.
+	measure 'Average Order Value KPI HTML' =
+			
+			VAR Curr = [Average Order Value]
+			VAR MoM = [AOV MoM %]
+			VAR YoY = [Avg Order Value YoY %]
+			
+			VAR CurrFormatted =
+			    SWITCH(
+			        TRUE(),
+			        ABS(Curr) >= 1000000000, "$" & FORMAT(DIVIDE(Curr, 1000000000), "0.00") & "B",
+			        ABS(Curr) >= 1000000,    "$" & FORMAT(DIVIDE(Curr, 1000000), "0.00") & "M",
+			        ABS(Curr) >= 1000,       "$" & FORMAT(DIVIDE(Curr, 1000), "0.00") & "K",
+			        "$" & FORMAT(Curr, "#,0.00")
+			    )
+			
+			VAR MoMArrow = IF(MoM >= 0, "▲", "▼")
+			VAR YoYArrow = IF(YoY >= 0, "▲", "▼")
+			
+			VAR MoMColor = IF(MoM >= 0, "#22c55e", "#ef4444")
+			VAR YoYColor = IF(YoY >= 0, "#22c55e", "#ef4444")
+			
+			VAR MoMText =
+			    IF(
+			        ISBLANK(MoM),
+			        "NA",
+			        MoMArrow & " " & FORMAT(ABS(MoM), "0.0%") & " MoM"
+			    )
+			
+			VAR YoYText =
+			    IF(
+			        ISBLANK(YoY),
+			        "NA",
+			        YoYArrow & " " & FORMAT(ABS(YoY), "0.0%") & " YoY"
+			    )
+			
+			RETURN
+			"
+			<div style='
+			    width:210px;
+			    padding:0;
+			    border-radius:8px;
+			    background:#232F3E;
+			    font-family:Segoe UI, Arial, sans-serif;
+			    overflow:hidden;
+			    text-align:center;
+			'>
+			    <div style='
+			        height:6px;
+			        width:100%;
+			        background:#E66C37;
+			    '></div>
+			
+			    <div style='
+			        padding:12px 14px;
+			    '>
+			        <div style='
+			            font-size:14px;
+			            color:#cbd5e1;
+			            font-weight:600;
+			            letter-spacing:0.2px;
+			            margin-bottom:4px;
+			            line-height:1.2;
+			            text-align:center;
+			        '>
+			            Average Order Value
+			        </div>
+			
+			        <div style='
+			            font-size:26px;
+			            font-weight:700;
+			            color:#ffffff;
+			            line-height:1.05;
+			            margin-bottom:8px;
+			            text-align:center;
+			        '>
+			            " & CurrFormatted & "
+			        </div>
+			
+			        <div style='
+			            display:flex;
+			            align-items:center;
+			            justify-content:center;
+			            gap:6px;
+			            font-size:12px;
+			            font-weight:700;
+			            border-top:1px solid rgba(255,255,255,0.10);
+			            padding-top:8px;
+			            line-height:1.2;
+			            text-align:center;
+			        '>
+			            <div style='color:" & MoMColor & "; white-space:nowrap; text-align:center;'>
+			                " & MoMText & "
+			            </div>
+			
+			            <div style='color:#94a3b8; text-align:center;'>|</div>
+			
+			            <div style='color:" & YoYColor & "; white-space:nowrap; text-align:center;'>
+			                " & YoYText & "
+			            </div>
+			        </div>
+			    </div>
+			</div>
+			"
+		displayFolder: Visuals & HTML
+		lineageTag: 0fd0f110-7647-4ab0-9b76-075f13931f9d
+
+	/// Self-contained HTML card for Gross Profit. Displayed on all report pages in the top KPI banner strip. Shows formatted GP value with MoM and YoY trend badges.
+	measure 'Gross Profit KPI HTML' =
+			
+			VAR Curr = [Gross Profit]
+			VAR MoM = [Gross Profit MoM %]
+			VAR YoY = [Gross Profit YoY %]
+			
+			VAR CurrFormatted =
+			    SWITCH(
+			        TRUE(),
+			        ABS(Curr) >= 1000000000, "$" & FORMAT(DIVIDE(Curr, 1000000000), "0.00") & "B",
+			        ABS(Curr) >= 1000000,    "$" & FORMAT(DIVIDE(Curr, 1000000), "0.00") & "M",
+			        ABS(Curr) >= 1000,       "$" & FORMAT(DIVIDE(Curr, 1000), "0.00") & "K",
+			        "$" & FORMAT(Curr, "#,0")
+			    )
+			
+			VAR MoMArrow = IF(MoM >= 0, "▲", "▼")
+			VAR YoYArrow = IF(YoY >= 0, "▲", "▼")
+			
+			VAR MoMColor = IF(MoM >= 0, "#22c55e", "#ef4444")
+			VAR YoYColor = IF(YoY >= 0, "#22c55e", "#ef4444")
+			
+			VAR MoMText =
+			    IF(
+			        ISBLANK(MoM),
+			        "NA",
+			        MoMArrow & " " & FORMAT(ABS(MoM), "0.0%") & " MoM"
+			    )
+			
+			VAR YoYText =
+			    IF(
+			        ISBLANK(YoY),
+			        "NA",
+			        YoYArrow & " " & FORMAT(ABS(YoY), "0.0%") & " YoY"
+			    )
+			
+			RETURN
+			"
+			<div style='
+			    width:210px;
+			    padding:0;
+			    border-radius:8px;
+			    background:#232F3E;
+			    font-family:Segoe UI, Arial, sans-serif;
+			    overflow:hidden;
+			    text-align:center;
+			'>
+			    <div style='
+			        height:6px;
+			        width:100%;
+			        background:#E66C37;
+			    '></div>
+			
+			    <div style='
+			        padding:12px 14px;
+			    '>
+			        <div style='
+			            font-size:14px;
+			            color:#cbd5e1;
+			            font-weight:600;
+			            letter-spacing:0.2px;
+			            margin-bottom:4px;
+			            line-height:1.2;
+			            text-align:center;
+			        '>
+			            Gross Profit
+			        </div>
+			
+			        <div style='
+			            font-size:26px;
+			            font-weight:700;
+			            color:#ffffff;
+			            line-height:1.05;
+			            margin-bottom:8px;
+			            text-align:center;
+			        '>
+			            " & CurrFormatted & "
+			        </div>
+			
+			        <div style='
+			            display:flex;
+			            align-items:center;
+			            justify-content:center;
+			            gap:6px;
+			            font-size:12px;
+			            font-weight:700;
+			            border-top:1px solid rgba(255,255,255,0.10);
+			            padding-top:8px;
+			            line-height:1.2;
+			            text-align:center;
+			        '>
+			            <div style='color:" & MoMColor & "; white-space:nowrap; text-align:center;'>
+			                " & MoMText & "
+			            </div>
+			
+			            <div style='color:#94a3b8; text-align:center;'>|</div>
+			
+			            <div style='color:" & YoYColor & "; white-space:nowrap; text-align:center;'>
+			                " & YoYText & "
+			            </div>
+			        </div>
+			    </div>
+			</div>
+			"
+		displayFolder: Visuals & HTML
+		lineageTag: c582297b-5c9b-40a8-80c9-02a00bfa13ee
+
+	/// Total Return Revenue Loss divided by Total Revenue. Shown in the Details page P&L table (Return Impact % row). Measures how much of gross sales is lost to returns.
+	measure 'Return Impact %' =
+			
+			DIVIDE([Total Return Revenue Loss], [Total Revenue], 0)
+		displayFolder: Profitability
+		lineageTag: 42aedf2a-74da-47c1-a673-e1ac23564270
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Formatted multi-line text label combining MoM %, Revenue value, and dollar change vs prior month. Can be used in a text box or card visual as a subtitle label on the Sales page trend chart.
+	measure 'MoM Label' =
+			
+			VAR MoM = [Revenue MoM %]
+			VAR Rev = [Net Revenue]
+			VAR RevenueChange =
+			    [Net Revenue]
+			        - CALCULATE(
+			            [Net Revenue],
+			            DATEADD(dim_date[Date], -1, MONTH)
+			        )
+			
+			VAR RevFormatted =
+			    IF(
+			        ABS(Rev) >= 1000,
+			        "$" & FORMAT(Rev / 1000, "0.00") & "K",
+			        "$" & FORMAT(Rev, "#,##0.00")
+			    )
+			
+			VAR ChangeFormatted =
+			    IF(
+			        ABS(RevenueChange) >= 1000,
+			        FORMAT(RevenueChange / 1000, "+$0.00K;-$0.00K"),
+			        FORMAT(RevenueChange, "+$#,##0.00;-$#,##0.00")
+			    )
+			
+			RETURN
+			    FORMAT(MoM, "+0.0%;-0.0%")
+			        & " MoM"
+			        & UNICHAR(10)
+			        & RevFormatted & " Revenue"
+			        & UNICHAR(10)
+			        & ChangeFormatted & " Change"
+		displayFolder: Visuals & HTML
+		lineageTag: 6c7edbc0-795a-4e75-9b8e-0d853641abd3
+
+	/// Absolute dollar change in Net Revenue vs the prior month. Used as the secondary data label (dollar amount) on the Net Revenue Trend chart on the Sales page, paired with Revenue MoM % for the percentage label.
+	measure 'Revenue Change MoM' =
+			
+			VAR PrevMonthRevenue =
+			    CALCULATE(
+			        [Net Revenue],
+			        DATEADD(dim_date[Date], -1, MONTH)
+			    )
+			RETURN
+			IF(
+			    NOT ISBLANK(PrevMonthRevenue),
+			    [Net Revenue] - PrevMonthRevenue
+			)
+		displayFolder: Time Intelligence
+		lineageTag: 6b34289f-d17a-42e4-8716-1f33edcd19c6
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Returns a ' - ' separator string. Used as a text separator inside HTML measure strings (e.g. KPI HTML cards and Home Page HTML) to join label segments.
+	measure Dash = " - "
+		displayFolder: Visuals & HTML
+		lineageTag: e25e1752-1d64-4620-a915-4a9e96becac1
+
+	/// HTML scrollable product matrix for the Products page. Shows top-50 products ranked by Revenue Contribution %, with columns: ProductName, Net Revenue, Net Revenue LY, Gross Profit Margin %, Revenue Contribution %. Cells are heat-coloured by value intensity. Drop into an HTML content visual.
+	measure ProductPerformanceMatrixHTML =
+			
+			VAR _Title = "Product Performance Detail"
+			VAR _TopNRows = 50
+			
+			VAR _ColorOrange = "#ff9900"
+			VAR _ColorNavy = "#232f3e"
+			VAR _ColorHeader = "#dce6f1"
+			VAR _ColorBorder = "#ffffff"
+			VAR _ColorText = "#111111"
+			
+			/* =========================
+			   DATA
+			   ========================= */
+			VAR _TableBase =
+			    ADDCOLUMNS(
+			        SUMMARIZE(
+			            ALLSELECTED(dim_product[ProductName]),
+			            dim_product[ProductName]
+			        ),
+			        "NR", [Net Revenue],
+			        "NRY", [Net Revenue LY],
+			        "GM", [Gross Profit Margin %],
+			        "RC", [Revenue Contribution %]
+			    )
+			
+			VAR _TableFiltered =
+			    FILTER(_TableBase, NOT ISBLANK([NR]))
+			
+			VAR _TableTop =
+			    TOPN(_TopNRows, _TableFiltered, [RC], DESC, [NR], DESC)
+			
+			VAR _MinNR = MINX(_TableTop, [NR])
+			VAR _MaxNR = MAXX(_TableTop, [NR])
+			VAR _MinNRY = MINX(_TableTop, [NRY])
+			VAR _MaxNRY = MAXX(_TableTop, [NRY])
+			VAR _MinGM = MINX(_TableTop, [GM])
+			VAR _MaxGM = MAXX(_TableTop, [GM])
+			
+			VAR _BodyRows =
+			    CONCATENATEX(
+			        _TableTop,
+			        VAR _Product = dim_product[ProductName]
+			        VAR _NR = [NR]
+			        VAR _NRY = [NRY]
+			        VAR _GM = [GM]
+			        VAR _RC = [RC]
+			
+			        VAR _NRAlpha =
+			            0.12 + DIVIDE(_NR - _MinNR, _MaxNR - _MinNR, 0) * 0.42
+			
+			        VAR _NRYAlpha =
+			            0.12 + DIVIDE(_NRY - _MinNRY, _MaxNRY - _MinNRY, 0) * 0.42
+			
+			        VAR _GMAlpha =
+			            0.10 + DIVIDE(_GM - _MinGM, _MaxGM - _MinGM, 0) * 0.30
+			
+			        VAR _NRBg =
+			            "rgba(255,153,0," & FORMAT(_NRAlpha, "0.00") & ")"
+			
+			        VAR _NRYBg =
+			            "rgba(255,153,0," & FORMAT(_NRYAlpha, "0.00") & ")"
+			
+			        VAR _GMBg =
+			            "rgba(35,47,62," & FORMAT(_GMAlpha, "0.00") & ")"
+			
+			        RETURN
+			            "<tr class='data-row'>
+			                <td class='left txt product-cell'>" & _Product & "</td>
+			                <td class='val metric-cell' style='background:" & _NRBg & ";'>" & FORMAT(_NR, "$#,##0.00") & "</td>
+			                <td class='val metric-cell' style='background:" & _NRYBg & ";'>" & FORMAT(_NRY, "$#,##0.00") & "</td>
+			                <td class='val gmcell metric-cell' style='background:" & _GMBg & "; color:#ffffff;'>" & FORMAT(_GM, "0.00%") & "</td>
+			                <td class='val metric-cell'>" & FORMAT(_RC, "0.00%") & "</td>
+			            </tr>",
+			        "",
+			        [RC], DESC,
+			        [NR], DESC
+			    )
+			
+			VAR _TotalRow =
+			    "<tr>
+			        <td class='left total-left'>Total</td>
+			        <td class='val total-val'>" & FORMAT([Net Revenue], "$#,##0.00") & "</td>
+			        <td class='val total-val'>" & FORMAT([Net Revenue LY], "$#,##0.00") & "</td>
+			        <td class='val total-val'>" & FORMAT([Gross Profit Margin %], "0.00%") & "</td>
+			        <td class='val total-val'>100.00%</td>
+			    </tr>"
+			
+			VAR _HTML =
+			"
+			<style>
+			html, body{
+			    margin:0;
+			    padding:0;
+			    width:100%;
+			    height:100%;
+			    overflow:hidden !important;
+			    font-family:Segoe UI, Arial, sans-serif;
+			    background:#ffffff;
+			}
+			*{
+			    box-sizing:border-box;
+			}
+			.wrap{
+			    width:100%;
+			    height:100%;
+			    margin:0;
+			    padding:0;
+			    background:#ffffff;
+			    border:1px solid " & _ColorBorder & ";
+			    border-radius:8px;
+			    overflow:hidden !important;
+			    display:flex;
+			    flex-direction:column;
+			}
+			.title{
+			    flex:0 0 36px;
+			    height:36px;
+			    display:flex;
+			    align-items:center;
+			    justify-content:center;
+			    font-size:14px;
+			    font-weight:700;
+			    color:" & _ColorText & ";
+			    background:#ffffff;
+			    border-bottom:1px solid " & _ColorBorder & ";
+			}
+			.header-wrap{
+			    flex:0 0 32px;
+			    height:32px;
+			    overflow:hidden !important;
+			    background:" & _ColorHeader & ";
+			    border-bottom:1px solid #ffffff;
+			    padding-right:20px;
+			}
+			.body-wrap{
+			    flex:1 1 auto;
+			    min-height:0;
+			    overflow-y:auto !important;
+			    overflow-x:hidden !important;
+			    padding-right:20px;
+			
+			    scrollbar-width:thin;
+			    scrollbar-color:rgba(35,47,62,0.10) transparent;
+			}
+			.body-wrap::-webkit-scrollbar{
+			    width:4px;
+			}
+			.body-wrap::-webkit-scrollbar-track{
+			    background:transparent;
+			}
+			.body-wrap::-webkit-scrollbar-thumb{
+			    background:rgba(35,47,62,0.10);
+			    border-radius:8px;
+			}
+			.total-wrap{
+			    flex:0 0 32px;
+			    height:32px;
+			    overflow:hidden !important;
+			    background:" & _ColorHeader & ";
+			    border-top:1px solid #ffffff;
+			    padding-right:20px;
+			}
+			.grid-table{
+			    width:100%;
+			    min-width:100%;
+			    max-width:100%;
+			    table-layout:fixed;
+			    border-collapse:separate;
+			    border-spacing:0;
+			    font-size:11px;
+			}
+			.grid-table col.c1{ width:34%; }
+			.grid-table col.c2{ width:16%; }
+			.grid-table col.c3{ width:16%; }
+			.grid-table col.c4{ width:18%; }
+			.grid-table col.c5{ width:16%; }
+			
+			.header-table th{
+			    background:" & _ColorHeader & ";
+			    color:#111111;
+			    font-size:11px;
+			    font-weight:700;
+			    text-align:center;
+			    padding:6px 10px;
+			    border-right:1px solid #ffffff;
+			    white-space:nowrap;
+			    height:32px;
+			}
+			.body-table td{
+			    padding:3px 10px;
+			    border-right:1px solid #ffffff;
+			    border-bottom:1px solid #ffffff;
+			    background:#fcfcfc;
+			    transition:filter .12s ease, background-color .12s ease;
+			}
+			.total-table td{
+			    padding:6px 10px;
+			    border-right:1px solid #ffffff;
+			    background:" & _ColorHeader & ";
+			    font-weight:700;
+			    height:32px;
+			}
+			.left{
+			    text-align:left;
+			    white-space:nowrap;
+			    overflow:hidden;
+			    text-overflow:ellipsis;
+			}
+			.val{
+			    text-align:center;
+			    font-weight:600;
+			}
+			.gmcell{
+			    font-weight:600;
+			}
+			.product-cell{
+			    background-clip:padding-box;
+			}
+			.metric-cell{
+			    background-clip:padding-box;
+			}
+			.body-table tbody tr.data-row:hover td{
+			    filter:brightness(0.94);
+			}
+			.total-left{
+			    text-align:left;
+			}
+			.total-val{
+			    text-align:center;
+			}
+			</style>
+			
+			<div class='wrap'>
+			    <div class='title'>" & _Title & "</div>
+			
+			    <div class='header-wrap'>
+			        <table class='grid-table header-table'>
+			            <colgroup>
+			                <col class='c1'><col class='c2'><col class='c3'><col class='c4'><col class='c5'>
+			            </colgroup>
+			            <thead>
+			                <tr>
+			                    <th>ProductName</th>
+			                    <th>Net Revenue</th>
+			                    <th>Net Revenue LY</th>
+			                    <th>Gross Profit Margin %</th>
+			                    <th>Revenue Contribution %</th>
+			                </tr>
+			            </thead>
+			        </table>
+			    </div>
+			
+			    <div class='body-wrap'>
+			        <table class='grid-table body-table'>
+			            <colgroup>
+			                <col class='c1'><col class='c2'><col class='c3'><col class='c4'><col class='c5'>
+			            </colgroup>
+			            <tbody>
+			                " & _BodyRows & "
+			            </tbody>
+			        </table>
+			    </div>
+			
+			    <div class='total-wrap'>
+			        <table class='grid-table total-table'>
+			            <colgroup>
+			                <col class='c1'><col class='c2'><col class='c3'><col class='c4'><col class='c5'>
+			            </colgroup>
+			            <tbody>
+			                " & _TotalRow & "
+			            </tbody>
+			        </table>
+			    </div>
+			</div>
+			"
+			
+			RETURN
+			_HTML
+		displayFolder: Visuals & HTML
+		lineageTag: e5e52164-aa14-4b50-8679-8b69f2fa7bd7
+
+	/// HTML progress-bar KPI card visual for the Products page. Displays three metrics stacked vertically — Total Active Products, Product Revenue per SKU, and Gross Profit Margin % — each with a labelled progress bar vs a preset target. Drop into an HTML content visual.
+	measure KPIProgressListHTML_ =
+			
+			VAR _TotalActiveProducts = [Total Active Products]
+			VAR _RevenuePerSKU = [Product Revenue per SKU]
+			VAR _GrossMargin = [Gross Profit Margin %]
+			
+			VAR _TargetProducts = 500
+			VAR _TargetRevenuePerSKU = 50000
+			VAR _TargetGrossMargin = 0.50
+			
+			VAR _PctProducts =
+			    MIN(100, MAX(0, DIVIDE(_TotalActiveProducts, _TargetProducts, 0) * 100))
+			
+			VAR _PctRevenue =
+			    MIN(100, MAX(0, DIVIDE(_RevenuePerSKU, _TargetRevenuePerSKU, 0) * 100))
+			
+			VAR _PctGrossMargin =
+			    MIN(100, MAX(0, DIVIDE(_GrossMargin, _TargetGrossMargin, 0) * 100))
+			
+			VAR _FmtProducts = FORMAT(_TotalActiveProducts, "#,##0")
+			VAR _FmtRevenue = FORMAT(_RevenuePerSKU, "$#,##0.00")
+			VAR _FmtGrossMargin = FORMAT(_GrossMargin, "0.0%")
+			
+			VAR _HTML =
+			"
+			<style>
+			html, body{
+			    margin:0;
+			    padding:0;
+			    width:100%;
+			    height:270px;
+			    background:#ffffff;
+			    font-family:Segoe UI, Arial, sans-serif;
+			    overflow:hidden;
+			}
+			*{
+			    box-sizing:border-box;
+			}
+			.wrap{
+			    width:100%;
+			    height:270px;
+			    padding:10px 14px;
+			    background:#ffffff;
+			    display:flex;
+			    flex-direction:column;
+			    justify-content:space-between;
+			    overflow:hidden;
+			}
+			.kpi-row{
+			    width:100%;
+			}
+			.kpi-value{
+			    font-size:26px;
+			    line-height:1.05;
+			    font-weight:700;
+			    color:#111111;
+			    margin-bottom:6px;
+			}
+			.kpi-label{
+			    font-size:14px;
+			    color:#222222;
+			    font-weight:500;
+			    margin-bottom:8px;
+			}
+			.bar-track{
+			    width:100%;
+			    height:5px;
+			    background:#ececec;
+			    border-radius:999px;
+			    overflow:hidden;
+			}
+			.bar-fill{
+			    height:100%;
+			    border-radius:999px;
+			}
+			.bar-orange{
+			    background:#ff9900;
+			}
+			.bar-blue{
+			    background:#146eb4;
+			}
+			.bar-navy{
+			    background:#232f3e;
+			}
+			.kpi-divider{
+			    width:100%;
+			    height:1px;
+			    background:#f2f2f2;
+			}
+			</style>
+			
+			<div class='wrap'>
+			
+			    <div class='kpi-row'>
+			        <div class='kpi-value'>" & _FmtProducts & "</div>
+			        <div class='kpi-label'>Total Active Products</div>
+			        <div class='bar-track'>
+			            <div class='bar-fill bar-orange' style='width:" & FORMAT(_PctProducts, "0.0") & "%;'></div>
+			        </div>
+			    </div>
+			
+			    <div class='kpi-divider'></div>
+			
+			    <div class='kpi-row'>
+			        <div class='kpi-value'>" & _FmtRevenue & "</div>
+			        <div class='kpi-label'>Product Revenue per SKU</div>
+			        <div class='bar-track'>
+			            <div class='bar-fill bar-blue' style='width:" & FORMAT(_PctRevenue, "0.0") & "%;'></div>
+			        </div>
+			    </div>
+			
+			    <div class='kpi-divider'></div>
+			
+			    <div class='kpi-row'>
+			        <div class='kpi-value'>" & _FmtGrossMargin & "</div>
+			        <div class='kpi-label'>Gross Profit Margin %</div>
+			        <div class='bar-track'>
+			            <div class='bar-fill bar-navy' style='width:" & FORMAT(_PctGrossMargin, "0.0") & "%;'></div>
+			        </div>
+			    </div>
+			
+			</div>
+			"
+			
+			RETURN
+			_HTML
+		displayFolder: Visuals & HTML
+		lineageTag: d983a3f3-3381-4702-9ee6-61480fe209cf
+
+	/// Styled HTML table with SVG progress bars for the Products page. Shows top-8 products with Code, ProductName, Revenue vs LY progress bar, Gross Margin %, Tier classification (Top/Growth/Low), Gap vs Average, and Revenue Contribution %. Alternative to ProductPerformanceMatrixHTML for a more visual card-style layout.
+	measure ProductPerformanceStyledHTML_SVG =
+			
+			VAR _TopNRows = 8
+			
+			VAR _TableBase =
+			    ADDCOLUMNS(
+			        SUMMARIZE(
+			            ALLSELECTED(dim_product[ProductName]),
+			            dim_product[ProductName]
+			        ),
+			        "NR", [Net Revenue],
+			        "NRY", [Net Revenue LY],
+			        "GM", [Gross Profit Margin %],
+			        "RC", [Revenue Contribution %]
+			    )
+			
+			VAR _TableFiltered =
+			    FILTER(_TableBase, NOT ISBLANK([NR]))
+			
+			VAR _TableTop =
+			    TOPN(_TopNRows, _TableFiltered, [RC], DESC, [NR], DESC)
+			
+			VAR _TotalProducts = COUNTROWS(_TableTop)
+			VAR _TotalRevenue = [Net Revenue]
+			VAR _AvgRC = AVERAGEX(_TableTop, [RC])
+			
+			VAR _TopTierCount =
+			    COUNTROWS(FILTER(_TableTop, [GM] >= 0.40))
+			
+			VAR _MidTierCount =
+			    COUNTROWS(FILTER(_TableTop, [GM] >= 0.20 && [GM] < 0.40))
+			
+			VAR _LowTierCount =
+			    COUNTROWS(FILTER(_TableTop, [GM] < 0.20))
+			
+			VAR _BodyRows =
+			    CONCATENATEX(
+			        _TableTop,
+			        VAR _Product = dim_product[ProductName]
+			        VAR _NR = [NR]
+			        VAR _NRY = [NRY]
+			        VAR _GM = [GM]
+			        VAR _RC = [RC]
+			
+			        VAR _RankCode =
+			            RANKX(_TableTop, dim_product[ProductName], , ASC, DENSE)
+			
+			        VAR _Code = "P" & FORMAT(_RankCode, "00")
+			
+			        VAR _ProgressWidth = MIN(100, MAX(0, _RC * 100))
+			        VAR _ProgressCurrentText = FORMAT(_NR, "$#,##0")
+			        VAR _ProgressBaseText = FORMAT(_NRY, "$#,##0")
+			
+			        VAR _TierText =
+			            SWITCH(
+			                TRUE(),
+			                _GM >= 0.40, "Top Tier",
+			                _GM >= 0.20, "Growth",
+			                "Low Tier"
+			            )
+			
+			        VAR _TierDotColor =
+			            SWITCH(
+			                TRUE(),
+			                _GM >= 0.40, "#43c174",
+			                _GM >= 0.20, "#d9a625",
+			                "#b79ad6"
+			            )
+			
+			        VAR _GapPct = (_RC - _AvgRC) * 100
+			
+			        VAR _GapText =
+			            IF(_GapPct >= 0, "+" & FORMAT(_GapPct, "0.0") & "%", FORMAT(_GapPct, "0.0") & "%")
+			
+			        VAR _GapClass =
+			            IF(_GapPct >= 0, "gap-pos", "gap-neg")
+			
+			        VAR _GMText = FORMAT(_GM, "0.0%")
+			        VAR _RCText = FORMAT(_RC, "0.0%")
+			
+			        RETURN
+			            "
+			            <tr>
+			                <td class='td-center'>
+			                    <span class='code-pill'>" & _Code & "</span>
+			                </td>
+			
+			                <td class='td-left product-cell'>" & _Product & "</td>
+			
+			                <td class='td-left progress-cell'>
+			                    <div class='progress-text-line'>
+			                        <span class='curr-val'>" & _ProgressCurrentText & "</span>
+			                        <span class='base-val'> / " & _ProgressBaseText & "</span>
+			                    </div>
+			                    <svg class='progress-svg' viewBox='0 0 220 10' preserveAspectRatio='none'>
+			                        <rect x='0' y='2' rx='3' ry='3' width='220' height='6' fill='#d6d6d6'></rect>
+			                        <rect x='0' y='2' rx='3' ry='3' width='" & FORMAT(_ProgressWidth * 2.2, "0.0") & "' height='6' fill='#2f7d4f'></rect>
+			                    </svg>
+			                </td>
+			
+			                <td class='td-center gm-cell'>" & _GMText & "</td>
+			
+			                <td class='td-left tier-cell'>
+			                    <svg class='tier-dot' viewBox='0 0 16 16'>
+			                        <circle cx='8' cy='8' r='6' fill='" & _TierDotColor & "'></circle>
+			                        <circle cx='8' cy='8' r='6' fill='url(#grad-" & _Code & ")'></circle>
+			                        <defs>
+			                            <radialGradient id='grad-" & _Code & "' cx='30%' cy='30%'>
+			                                <stop offset='0%' stop-color='rgba(255,255,255,0.65)'/>
+			                                <stop offset='100%' stop-color='rgba(255,255,255,0)'/>
+			                            </radialGradient>
+			                        </defs>
+			                    </svg>
+			                    <span class='tier-text'>" & _TierText & "</span>
+			                </td>
+			
+			                <td class='td-center'>
+			                    <span class='gap-pill " & _GapClass & "'>" & _GapText & "</span>
+			                </td>
+			
+			                <td class='td-left rc-cell'>" & _RCText & "</td>
+			            </tr>
+			            ",
+			        ""
+			    )
+			
+			VAR _HTML =
+			"
+			<style>
+			html, body{
+			    margin:0;
+			    padding:0;
+			    width:100%;
+			    height:100%;
+			    background:#ffffff;
+			    font-family:Segoe UI, Arial, sans-serif;
+			    overflow:hidden;
+			}
+			*{
+			    box-sizing:border-box;
+			}
+			.wrap{
+			    width:100%;
+			    height:100%;
+			    padding:8px;
+			    background:#ffffff;
+			}
+			.card{
+			    width:100%;
+			    height:100%;
+			    background:#efefef;
+			    border-radius:14px;
+			    padding:12px 14px 10px 14px;
+			    overflow:hidden;
+			}
+			.title{
+			    font-size:13px;
+			    font-weight:700;
+			    color:#0f172a;
+			    line-height:1.25;
+			    margin-bottom:2px;
+			}
+			.subtitle{
+			    font-size:11px;
+			    color:#333333;
+			    margin-bottom:10px;
+			}
+			.table-wrap{
+			    width:100%;
+			    overflow:hidden;
+			}
+			.tbl{
+			    width:100%;
+			    border-collapse:collapse;
+			    table-layout:fixed;
+			    font-size:11px;
+			}
+			.tbl thead th{
+			    text-align:left;
+			    font-size:10px;
+			    color:#0f172a;
+			    font-weight:700;
+			    padding:6px 8px 8px 8px;
+			    border-bottom:1px solid #d9d9d9;
+			    white-space:nowrap;
+			}
+			.tbl tbody td{
+			    padding:7px 8px;
+			    border-bottom:1px solid #d7d7d7;
+			    vertical-align:middle;
+			}
+			.tbl tbody tr:last-child td{
+			    border-bottom:none;
+			}
+			.td-center{
+			    text-align:center;
+			}
+			.td-left{
+			    text-align:left;
+			}
+			.code-pill{
+			    display:inline-block;
+			    min-width:38px;
+			    padding:6px 10px;
+			    border-radius:7px;
+			    background:#a9b6c7;
+			    color:#ffffff;
+			    font-size:10px;
+			    font-weight:700;
+			    text-align:center;
+			}
+			.product-cell{
+			    white-space:nowrap;
+			    overflow:hidden;
+			    text-overflow:ellipsis;
+			}
+			.progress-cell{
+			    padding-right:12px !important;
+			}
+			.progress-text-line{
+			    font-size:9px;
+			    font-weight:700;
+			    margin-bottom:3px;
+			    white-space:nowrap;
+			    overflow:hidden;
+			    text-overflow:ellipsis;
+			}
+			.curr-val{
+			    color:#1e3a8a;
+			}
+			.base-val{
+			    color:#7a7a7a;
+			    font-weight:600;
+			}
+			.progress-svg{
+			    width:100%;
+			    height:8px;
+			    display:block;
+			}
+			.gm-cell{
+			    font-weight:400;
+			    color:#222222;
+			}
+			.tier-cell{
+			    white-space:nowrap;
+			}
+			.tier-dot{
+			    width:14px;
+			    height:14px;
+			    vertical-align:middle;
+			    margin-right:6px;
+			}
+			.tier-text{
+			    vertical-align:middle;
+			    color:#222222;
+			}
+			.gap-pill{
+			    display:inline-block;
+			    min-width:72px;
+			    padding:6px 10px;
+			    border-radius:999px;
+			    font-size:10px;
+			    font-weight:700;
+			    text-align:center;
+			}
+			.gap-pos{
+			    background:#cfe0f3;
+			    color:#1864c7;
+			}
+			.gap-neg{
+			    background:#d9e5f2;
+			    color:#1d5fb8;
+			}
+			.rc-cell{
+			    color:#333333;
+			}
+			.col-code{ width:9%; }
+			.col-product{ width:22%; }
+			.col-progress{ width:29%; }
+			.col-gm{ width:10%; }
+			.col-tier{ width:12%; }
+			.col-gap{ width:10%; }
+			.col-rc{ width:8%; }
+			</style>
+			
+			<div class='wrap'>
+			    <div class='card'>
+			        <div class='title'>
+			            Product Performance Overview: " & FORMAT(_TotalRevenue, "$#,##0.0") & "
+			            (" & FORMAT(_TotalProducts, "#,##0") & " products tracked)
+			        </div>
+			        <div class='subtitle'>
+			            " & FORMAT(_TopTierCount, "#,##0") & " top tier — "
+			              & FORMAT(_MidTierCount, "#,##0") & " growth — "
+			              & FORMAT(_LowTierCount, "#,##0") & " low tier
+			        </div>
+			
+			        <div class='table-wrap'>
+			            <table class='tbl'>
+			                <colgroup>
+			                    <col class='col-code'>
+			                    <col class='col-product'>
+			                    <col class='col-progress'>
+			                    <col class='col-gm'>
+			                    <col class='col-tier'>
+			                    <col class='col-gap'>
+			                    <col class='col-rc'>
+			                </colgroup>
+			                <thead>
+			                    <tr>
+			                        <th>CODE</th>
+			                        <th>PRODUCT</th>
+			                        <th>REVENUE (CURR / LY)</th>
+			                        <th>GM%</th>
+			                        <th>TIER</th>
+			                        <th>GAP vs AVG</th>
+			                        <th>RC%</th>
+			                    </tr>
+			                </thead>
+			                <tbody>
+			                    " & _BodyRows & "
+			                </tbody>
+			            </table>
+			        </div>
+			    </div>
+			</div>
+			"
+			
+			RETURN
+			_HTML
+		displayFolder: Visuals & HTML
+		lineageTag: dd9bd427-8b8d-4335-bb4b-c54a5591bae4
+
+	/// Returns a hex colour string based on Customers MoM % direction — dark green (#00674B) for negative (growth recovering) or dark red (#A1343C) for positive. Used for conditional formatting colour in card visuals on the Customers page.
+	measure 'MoM Color' =
+			
+			VAR v = [Customers MoM %]
+			RETURN
+			SWITCH(
+			    TRUE(),
+			    ISBLANK(v), BLANK(),
+			    v < 0, "#00674B",
+			    v > 0, "#A1343C",
+			    "#808080"
+			)
+		displayFolder: Visuals & HTML
+		lineageTag: 746a53c4-3906-4579-bd2f-ebc1ffd5dea0
+
+	/// Full HTML dashboard for the Home page. Renders a dark-themed page with: a header bar with report title and last-refresh timestamp, a live 5-KPI banner (Revenue, Orders, Customers, AOV, Gross Profit with MoM/YoY badges), and 5 page-navigation cards (Overview, Sales, Products, Customers, Details) with icons and descriptions.
+	measure 'Home Page HTML' =
+			VAR Rev = [Total Revenue]
+			VAR Orders = [Total Orders]
+			VAR Customers = [Total Customers]
+			VAR AOV = [Average Order Value]
+			VAR GP = [Gross Profit]
+			VAR GPM = [Gross Profit Margin %]
+			VAR RevYoY = [Revenue YoY %]
+			VAR OrdYoY = [Orders YoY %]
+			VAR CustYoY = [Customers YoY %]
+			VAR AOVYoY = [Avg Order Value YoY %]
+			VAR GPYoY = [Gross Profit YoY %]
+			VAR RevMoM = [Revenue MoM %]
+			VAR OrdMoM = [Orders MoM %]
+			VAR CustMoM = [Customers MoM %]
+			VAR AOVMoM = [AOV MoM %]
+			VAR GPMoM = [Gross Profit MoM %]
+			
+			VAR fRev =
+			    SWITCH(TRUE(),
+			        ABS(Rev) >= 1000000, "$" & FORMAT(DIVIDE(Rev,1000000),"0.00") & "M",
+			        ABS(Rev) >= 1000, "$" & FORMAT(DIVIDE(Rev,1000),"0.0") & "K",
+			        "$" & FORMAT(Rev,"#,0")
+			    )
+			VAR fOrders =
+			    SWITCH(TRUE(),
+			        ABS(Orders) >= 1000, FORMAT(DIVIDE(Orders,1000),"0.00") & "K",
+			        FORMAT(Orders,"#,0")
+			    )
+			VAR fCust =
+			    SWITCH(TRUE(),
+			        ABS(Customers) >= 1000, FORMAT(DIVIDE(Customers,1000),"0.00") & "K",
+			        FORMAT(Customers,"#,0")
+			    )
+			VAR fAOV = "$" & FORMAT(AOV,"#,0.00")
+			VAR fGP =
+			    SWITCH(TRUE(),
+			        ABS(GP) >= 1000000, "$" & FORMAT(DIVIDE(GP,1000000),"0.00") & "M",
+			        ABS(GP) >= 1000, "$" & FORMAT(DIVIDE(GP,1000),"0.0") & "K",
+			        "$" & FORMAT(GP,"#,0")
+			    )
+			VAR fGPM = FORMAT(GPM,"0.0%")
+			
+			VAR cRevYoY = IF(RevYoY >= 0,"#22c55e","#ef4444")
+			VAR cOrdYoY = IF(OrdYoY >= 0,"#22c55e","#ef4444")
+			VAR cCustYoY = IF(CustYoY >= 0,"#22c55e","#ef4444")
+			VAR cAOVYoY = IF(AOVYoY >= 0,"#22c55e","#ef4444")
+			VAR cGPYoY = IF(GPYoY >= 0,"#22c55e","#ef4444")
+			
+			VAR cRevMoM = IF(RevMoM >= 0,"#22c55e","#ef4444")
+			VAR cOrdMoM = IF(OrdMoM >= 0,"#22c55e","#ef4444")
+			VAR cCustMoM = IF(CustMoM >= 0,"#22c55e","#ef4444")
+			VAR cAOVMoM = IF(AOVMoM >= 0,"#22c55e","#ef4444")
+			VAR cGPMoM = IF(GPMoM >= 0,"#22c55e","#ef4444")
+			
+			VAR aRevYoY = IF(RevYoY >= 0,"▲","▼") & " " & FORMAT(ABS(RevYoY),"0.0%") & " YoY"
+			VAR aOrdYoY = IF(OrdYoY >= 0,"▲","▼") & " " & FORMAT(ABS(OrdYoY),"0.0%") & " YoY"
+			VAR aCustYoY = IF(CustYoY >= 0,"▲","▼") & " " & FORMAT(ABS(CustYoY),"0.0%") & " YoY"
+			VAR aAOVYoY = IF(AOVYoY >= 0,"▲","▼") & " " & FORMAT(ABS(AOVYoY),"0.0%") & " YoY"
+			VAR aGPYoY = IF(GPYoY >= 0,"▲","▼") & " " & FORMAT(ABS(GPYoY),"0.0%") & " YoY"
+			
+			VAR aRevMoM = IF(RevMoM >= 0,"▲","▼") & " " & FORMAT(ABS(RevMoM),"0.0%") & " MoM"
+			VAR aOrdMoM = IF(OrdMoM >= 0,"▲","▼") & " " & FORMAT(ABS(OrdMoM),"0.0%") & " MoM"
+			VAR aCustMoM = IF(CustMoM >= 0,"▲","▼") & " " & FORMAT(ABS(CustMoM),"0.0%") & " MoM"
+			VAR aAOVMoM = IF(AOVMoM >= 0,"▲","▼") & " " & FORMAT(ABS(AOVMoM),"0.0%") & " MoM"
+			VAR aGPMoM = IF(GPMoM >= 0,"▲","▼") & " " & FORMAT(ABS(GPMoM),"0.0%") & " MoM"
+			
+			RETURN
+			"<div style='width:100%;height:100%;background:#1a2332;font-family:Segoe UI,Arial,sans-serif;padding:0;margin:0;box-sizing:border-box;position:relative;'>"
+			& "<div style='width:100%;background:#232F3E;border-bottom:3px solid #E66C37;padding:18px 28px 14px 28px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;'>"
+			& "<div><div style='font-size:9px;font-weight:600;color:#E66C37;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px;'>Retail &amp; E-Commerce</div>"
+			& "<div style='font-size:22px;font-weight:700;color:#ffffff;letter-spacing:-0.3px;'>Sales Analysis Dashboard</div></div>"
+			& "<div style='text-align:right;'><div style='font-size:9px;color:#94a3b8;font-weight:500;letter-spacing:0.5px;text-transform:uppercase;'>Last Refresh</div>"
+			& "<div style='font-size:13px;color:#e2e8f0;font-weight:600;'>" & FORMAT(NOW(),"DD MMM YYYY") & " &nbsp;|&nbsp; " & FORMAT(NOW(),"hh:mm AM/PM") & "</div></div></div>"
+			& "<div style='padding:16px 28px 6px 28px;'><div style='font-size:9px;font-weight:700;color:#64748b;letter-spacing:2px;text-transform:uppercase;'>Key Performance Indicators</div></div>"
+			& "<div style='display:flex;gap:10px;padding:0 28px;box-sizing:border-box;'>"
+			& "<div style='flex:1;background:#232F3E;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.06);'><div style='height:4px;background:#E66C37;'></div><div style='padding:12px 14px;'><div style='font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.3px;text-transform:uppercase;margin-bottom:5px;'>Total Revenue</div><div style='font-size:22px;font-weight:700;color:#fff;margin-bottom:7px;'>" & fRev & "</div><div style='display:flex;gap:8px;border-top:1px solid rgba(255,255,255,0.08);padding-top:7px;'><span style='font-size:10px;font-weight:700;color:" & cRevMoM & ";'>" & aRevMoM & "</span><span style='font-size:10px;color:#475569;'>|</span><span style='font-size:10px;font-weight:700;color:" & cRevYoY & ";'>" & aRevYoY & "</span></div></div></div>"
+			& "<div style='flex:1;background:#232F3E;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.06);'><div style='height:4px;background:#E66C37;'></div><div style='padding:12px 14px;'><div style='font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.3px;text-transform:uppercase;margin-bottom:5px;'>Total Orders</div><div style='font-size:22px;font-weight:700;color:#fff;margin-bottom:7px;'>" & fOrders & "</div><div style='display:flex;gap:8px;border-top:1px solid rgba(255,255,255,0.08);padding-top:7px;'><span style='font-size:10px;font-weight:700;color:" & cOrdMoM & ";'>" & aOrdMoM & "</span><span style='font-size:10px;color:#475569;'>|</span><span style='font-size:10px;font-weight:700;color:" & cOrdYoY & ";'>" & aOrdYoY & "</span></div></div></div>"
+			& "<div style='flex:1;background:#232F3E;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.06);'><div style='height:4px;background:#E66C37;'></div><div style='padding:12px 14px;'><div style='font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.3px;text-transform:uppercase;margin-bottom:5px;'>Total Customers</div><div style='font-size:22px;font-weight:700;color:#fff;margin-bottom:7px;'>" & fCust & "</div><div style='display:flex;gap:8px;border-top:1px solid rgba(255,255,255,0.08);padding-top:7px;'><span style='font-size:10px;font-weight:700;color:" & cCustMoM & ";'>" & aCustMoM & "</span><span style='font-size:10px;color:#475569;'>|</span><span style='font-size:10px;font-weight:700;color:" & cCustYoY & ";'>" & aCustYoY & "</span></div></div></div>"
+			& "<div style='flex:1;background:#232F3E;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.06);'><div style='height:4px;background:#E66C37;'></div><div style='padding:12px 14px;'><div style='font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.3px;text-transform:uppercase;margin-bottom:5px;'>Avg Order Value</div><div style='font-size:22px;font-weight:700;color:#fff;margin-bottom:7px;'>" & fAOV & "</div><div style='display:flex;gap:8px;border-top:1px solid rgba(255,255,255,0.08);padding-top:7px;'><span style='font-size:10px;font-weight:700;color:" & cAOVMoM & ";'>" & aAOVMoM & "</span><span style='font-size:10px;color:#475569;'>|</span><span style='font-size:10px;font-weight:700;color:" & cAOVYoY & ";'>" & aAOVYoY & "</span></div></div></div>"
+			& "<div style='flex:1;background:#232F3E;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.06);'><div style='height:4px;background:#E66C37;'></div><div style='padding:12px 14px;'><div style='font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.3px;text-transform:uppercase;margin-bottom:5px;'>Gross Profit</div><div style='font-size:22px;font-weight:700;color:#fff;margin-bottom:7px;'>" & fGP & "</div><div style='display:flex;gap:8px;border-top:1px solid rgba(255,255,255,0.08);padding-top:7px;'><span style='font-size:10px;font-weight:700;color:" & cGPMoM & ";'>" & aGPMoM & "</span><span style='font-size:10px;color:#475569;'>|</span><span style='font-size:10px;font-weight:700;color:" & cGPYoY & ";'>" & aGPYoY & "</span></div></div></div>"
+			& "</div>"
+			& "<div style='padding:18px 28px 8px 28px;'><div style='font-size:9px;font-weight:700;color:#64748b;letter-spacing:2px;text-transform:uppercase;'>Navigate to Pages</div></div>"
+			& "<div style='display:flex;gap:10px;padding:0 28px 20px 28px;box-sizing:border-box;'>"
+			& "<div style='flex:1;background:#232F3E;border-radius:8px;border:1px solid rgba(255,255,255,0.06);padding:16px 14px;'><div style='width:36px;height:36px;background:rgba(230,108,55,0.15);border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;'><svg width=&quot;18&quot; height=&quot;18&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;#E66C37&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;><rect x=&quot;3&quot; y=&quot;3&quot; width=&quot;7&quot; height=&quot;7&quot;/><rect x=&quot;14&quot; y=&quot;3&quot; width=&quot;7&quot; height=&quot;7&quot;/><rect x=&quot;3&quot; y=&quot;14&quot; width=&quot;7&quot; height=&quot;7&quot;/><rect x=&quot;14&quot; y=&quot;14&quot; width=&quot;7&quot; height=&quot;7&quot;/></svg></div><div style='font-size:13px;font-weight:700;color:#fff;margin-bottom:4px;'>Overview</div><div style='font-size:10px;color:#64748b;line-height:1.5;'>KPI trends, revenue bridge &amp; regional breakdown</div><div style='margin-top:10px;font-size:9px;font-weight:700;color:#E66C37;letter-spacing:1px;text-transform:uppercase;'>View Page ›</div></div>"
+			& "<div style='flex:1;background:#232F3E;border-radius:8px;border:1px solid rgba(255,255,255,0.06);padding:16px 14px;'><div style='width:36px;height:36px;background:rgba(34,197,94,0.1);border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;'><svg width=&quot;18&quot; height=&quot;18&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;#22c55e&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;><polyline points=&quot;22 7 13.5 15.5 8.5 10.5 2 17&quot;/><polyline points=&quot;16 7 22 7 22 13&quot;/></svg></div><div style='font-size:13px;font-weight:700;color:#fff;margin-bottom:4px;'>Sales</div><div style='font-size:10px;color:#64748b;line-height:1.5;'>Monthly trends, order status &amp; channel performance</div><div style='margin-top:10px;font-size:9px;font-weight:700;color:#22c55e;letter-spacing:1px;text-transform:uppercase;'>View Page ›</div></div>"
+			& "<div style='flex:1;background:#232F3E;border-radius:8px;border:1px solid rgba(255,255,255,0.06);padding:16px 14px;'><div style='width:36px;height:36px;background:rgba(99,102,241,0.12);border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;'><svg width=&quot;18&quot; height=&quot;18&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;#818cf8&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;><path d=&quot;M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z&quot;/></svg></div><div style='font-size:13px;font-weight:700;color:#fff;margin-bottom:4px;'>Products</div><div style='font-size:10px;color:#64748b;line-height:1.5;'>Category revenue, price bands &amp; SKU performance</div><div style='margin-top:10px;font-size:9px;font-weight:700;color:#818cf8;letter-spacing:1px;text-transform:uppercase;'>View Page ›</div></div>"
+			& "<div style='flex:1;background:#232F3E;border-radius:8px;border:1px solid rgba(255,255,255,0.06);padding:16px 14px;'><div style='width:36px;height:36px;background:rgba(234,179,8,0.1);border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;'><svg width=&quot;18&quot; height=&quot;18&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;#eab308&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;><path d=&quot;M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2&quot;/><circle cx=&quot;9&quot; cy=&quot;7&quot; r=&quot;4&quot;/><path d=&quot;M23 21v-2a4 4 0 0 0-3-3.87&quot;/><path d=&quot;M16 3.13a4 4 0 0 1 0 7.75&quot;/></svg></div><div style='font-size:13px;font-weight:700;color:#fff;margin-bottom:4px;'>Customers</div><div style='font-size:10px;color:#64748b;line-height:1.5;'>Loyalty tiers, age groups &amp; retention trends</div><div style='margin-top:10px;font-size:9px;font-weight:700;color:#eab308;letter-spacing:1px;text-transform:uppercase;'>View Page ›</div></div>"
+			& "<div style='flex:1;background:#232F3E;border-radius:8px;border:1px solid rgba(255,255,255,0.06);padding:16px 14px;'><div style='width:36px;height:36px;background:rgba(20,184,166,0.1);border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;'><svg width=&quot;18&quot; height=&quot;18&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;#2dd4bf&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;><path d=&quot;M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z&quot;/><polyline points=&quot;14 2 14 8 20 8&quot;/><line x1=&quot;16&quot; y1=&quot;13&quot; x2=&quot;8&quot; y2=&quot;13&quot;/><line x1=&quot;16&quot; y1=&quot;17&quot; x2=&quot;8&quot; y2=&quot;17&quot;/></svg></div><div style='font-size:13px;font-weight:700;color:#fff;margin-bottom:4px;'>Details</div><div style='font-size:10px;color:#64748b;line-height:1.5;'>Full P&amp;L statement with YoY variance &amp; slicers</div><div style='margin-top:10px;font-size:9px;font-weight:700;color:#2dd4bf;letter-spacing:1px;text-transform:uppercase;'>View Page ›</div></div>"
+			& "</div>"
+			& "<div style='position:absolute;bottom:0;left:0;width:100%;background:#0f172a;border-top:1px solid rgba(255,255,255,0.06);padding:8px 28px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;'>"
+			& "<div style='font-size:9px;color:#334155;font-weight:500;letter-spacing:0.5px;'>RETAIL &amp; E-COMMERCE SALES ANALYSIS &nbsp;·&nbsp; POWERED BY POWER BI</div>"
+			& "<div style='font-size:9px;color:#334155;font-weight:500;'>GPM: " & fGPM & "</div></div>"
+			& "</div>"
+		displayFolder: Visuals & HTML
+		lineageTag: 58d929a2-8d74-4cb6-a4b7-5ea033e8ea06
+
+	/// Net Revenue divided by Total Customers. Add to the Customers page Loyalty Tier chart as a secondary axis or tooltip to reveal how much each tier actually spends — replaces pure customer count bars. Also useful on Overview page Region chart tooltip.
+	measure 'Revenue per Customer' = DIVIDE([Net Revenue], [Total Customers], 0)
+		formatString: $#,##0.00
+		displayFolder: Customers
+		lineageTag: 01627d77-0fe9-4ef2-b9ac-4dd28e912292
+
+	/// Total Orders divided by Total Customers. Shows purchase frequency — how often each customer buys on average. Add to the Customers page Age Group chart as a secondary axis alongside customer count bars to reveal which age group buys most frequently.
+	measure 'Avg Orders per Customer' = DIVIDE([Total Orders], [Total Customers], 0)
+		formatString: 0.00
+		displayFolder: Customers
+		lineageTag: 824d4c8b-35ad-4050-b6b2-af8eea34ae5d
+
+	/// New Customers divided by Total Customers. Shows what proportion of the active customer base is first-time buyers vs returning. Add to Customers page as a KPI card next to New Customers count to show acquisition vs retention balance instantly.
+	measure 'New Customer %' = DIVIDE([New Customers], [Total Customers], 0)
+		formatString: 0.00%
+		displayFolder: Customers
+		lineageTag: 7ef85760-5c5e-4a0a-a12e-6caef82f8568
+
+	/// Estimated revenue lost to cancellations: Total Cancelled Orders multiplied by Average Order Value. Add to the Sales page Revenue by Order Status chart as a tooltip or replace the raw cancelled order count with this dollar value to show the true financial impact of cancellations.
+	measure 'Cancellation Revenue Loss' = [Total Cancelled Orders] * [Average Order Value]
+		formatString: $#,##0.00
+		displayFolder: Order Quality
+		lineageTag: 46c18145-807b-420c-9486-985a5ee6e4e0
+
+	/// Net Revenue divided by successfully delivered orders only. Strips out cancelled and returned orders to show the true effective order value of orders that actually completed. Add to Sales page as a KPI card or tooltip on the channel bar chart — compare against AOV to see how much value is lost per average order.
+	measure 'Net Revenue per Delivered Order' = DIVIDE([Net Revenue], [Total Delivered Orders], 0)
+		formatString: $#,##0.00
+		displayFolder: Sales
+		lineageTag: 1989b408-5e83-43a5-844b-d35247c67fd2
+
+	/// Gross Profit Margin % for the same period last year. Add to the Products page Revenue by Category chart as a secondary axis line to show if category margins are expanding or compressing year over year. Also add as a column in the Product Performance Detail table alongside the current GP Margin %.
+	measure 'Gross Profit Margin % LY' = CALCULATE([Gross Profit Margin %], DATEADD(dim_date[Date], -1, YEAR))
+		formatString: 0.00%
+		displayFolder: Products
+		lineageTag: e220ae41-af08-4b03-a8f3-605165b5db58
+
+	/// Difference between this category/product's Gross Profit Margin % and the overall average margin. Positive = above average profitability, negative = below. Add as a tooltip on the Revenue by Category bar chart on the Products page so stakeholders instantly see which categories outperform or underperform the average margin without switching to a separate table.
+	measure 'Margin vs Category Avg' = VAR _AvgMargin = CALCULATE([Gross Profit Margin %], ALL(dim_product[CategoryName])) RETURN [Gross Profit Margin %] - _AvgMargin
+		formatString: +0.00%;-0.00%;0.00%
+		displayFolder: Products
+		lineageTag: 363c1a67-e57e-4b0d-b5b6-de983e122152
+
+	/// Year-over-year change in Gross Profit Margin expressed in basis points (100 bps = 1%). Add to the Details page P&L table as an extra column after the YoY % column for Gross Profit Margin % row, so finance stakeholders can see margin drift precisely (e.g. +0 bps means flat despite +22% revenue growth — a key strategic signal).
+	measure 'Gross Profit Margin YoY BPS' = VAR CurrMargin = [Gross Profit Margin %] VAR PriorMargin = CALCULATE([Gross Profit Margin %], DATEADD(dim_date[Date], -1, YEAR)) RETURN (CurrMargin - PriorMargin) * 10000
+		formatString: +0 bps;-0 bps;0 bps
+		displayFolder: Time Intelligence
+		lineageTag: 53b57ed2-9e16-4fcd-af04-191fd1e90e55
+
+	measure 'Net Revenue per Unit' = DIVIDE([Net Revenue], [Total Units Sold], 0)
+		displayFolder: Sales
+		lineageTag: 27ed0d11-ccf6-4bd4-b30c-b8203e744cdb
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Avg Order Discount $' = DIVIDE([Total Discount Amount], [Total Orders], 0)
+		displayFolder: Sales
+		lineageTag: 21298d43-8b9f-4bd4-98bf-eda240e9165c
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Discount Penetration %' =
+			
+			VAR _DiscountedOrders =
+			    CALCULATE(
+			        DISTINCTCOUNT(fact_sales_order_item[OrderID]),
+			        fact_sales_order_item[DiscountUSD] > 0
+			    )
+			RETURN
+			    DIVIDE(_DiscountedOrders, [Total Orders], 0)
+		displayFolder: Sales
+		lineageTag: ced2170c-6187-4d92-a381-15d9eaa0cb28
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'High Value Customers' =
+			
+			VAR _CustomerRevenueTable =
+			    ADDCOLUMNS(
+			        VALUES(fact_sales_order_item[CustomerKey]),
+			        "CustomerRevenue", [Net Revenue]
+			    )
+			VAR _AvgRevenuePerCustomer =
+			    AVERAGEX(_CustomerRevenueTable, [CustomerRevenue])
+			RETURN
+			    COUNTROWS(
+			        FILTER(
+			            _CustomerRevenueTable,
+			            [CustomerRevenue] > _AvgRevenuePerCustomer
+			        )
+			    )
+		formatString: 0
+		displayFolder: Customers
+		lineageTag: 788d1dbd-f9fa-48b6-bf8b-809b20c51bd5
+
+	measure 'Retained Customers' =
+			
+			VAR _CurrentCustomers =
+			    VALUES(fact_sales_order_item[CustomerKey])
+			VAR _LYCustomers =
+			    CALCULATETABLE(
+			        VALUES(fact_sales_order_item[CustomerKey]),
+			        DATEADD(dim_date[Date], -1, YEAR)
+			    )
+			RETURN
+			    COUNTROWS(INTERSECT(_CurrentCustomers, _LYCustomers))
+		formatString: 0
+		displayFolder: Customers
+		lineageTag: 21ba7778-9d24-4c50-bbff-4f53da8b8a68
+
+	measure 'Customer Retention Rate %' =
+			
+			VAR _LYCustomersCount =
+			    CALCULATE(
+			        DISTINCTCOUNT(fact_sales_order_item[CustomerKey]),
+			        DATEADD(dim_date[Date], -1, YEAR)
+			    )
+			RETURN
+			    DIVIDE([Retained Customers], _LYCustomersCount, 0)
+		displayFolder: Customers
+		lineageTag: dd17d6c8-20ea-4dfc-915c-6d8f56cba7df
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Returns a format-type string (CURRENCY, PERCENT, DECIMAL, NUMBER) for the selected row. Used by Display measures to apply correct formatting.
+	measure 'Detail Format Type' =
+			
+			VAR RowLabel = SELECTEDVALUE('_Detail Rows'[Row Label])
+			RETURN
+			SWITCH(
+			    RowLabel,
+			    "Gross Sales Revenue",       "CURRENCY",
+			    "(-) Discounts Applied",     "CURRENCY",
+			    "(-) Returns & Refunds",     "CURRENCY",
+			    "= Net Revenue",             "CURRENCY",
+			    "(-) Product Cost",          "CURRENCY",
+			    "= Gross Profit",            "CURRENCY",
+			    "Average Order Value",       "CURRENCY",
+			    "Net Revenue per Unit",      "CURRENCY",
+			    "Avg Order Discount $",      "CURRENCY",
+			    "Customer Lifetime Value",   "CURRENCY",
+			
+			    "Gross Profit Margin %",     "PERCENT",
+			    "Discount Rate %",           "PERCENT",
+			    "Return Impact %",           "PERCENT",
+			    "Discount Penetration %",    "PERCENT",
+			    "Repeat Customer Rate %",    "PERCENT",
+			    "Customer Retention Rate %", "PERCENT",
+			    "Delivery Rate %",           "PERCENT",
+			    "Return Rate %",             "PERCENT",
+			    "Cancellation Rate %",       "PERCENT",
+			    "Fulfillment Rate %",        "PERCENT",
+			
+			    "Avg Units per Order",       "DECIMAL",
+			
+			    "NUMBER"
+			)
+		displayFolder: Visuals & HTML
+		lineageTag: 4b3d99d5-8097-4aa0-b8d3-f67d7901be9c
+
+	/// Formatted text version of Detail YoY % with signed +/- prefix. Always shown as a percentage.
+	measure 'Detail YoY Display' =
+			
+			FORMAT([Detail YoY %], "+0.00%;-0.00%;0.00%")
+		displayFolder: Detail Page Measures & HTML
+		lineageTag: 22c06977-f8f2-4484-853e-b19a4e0f7f13
+
+	/// Year-over-Year % change for the selected row. Uses ABS denominator to handle negative base values correctly.
+	measure 'Detail YoY %' =
+			
+			DIVIDE([Detail Value] - [Detail Value LY], ABS([Detail Value LY]), BLANK())
+		displayFolder: Detail Page Measures & HTML
+		lineageTag: 3197c9af-30d1-463c-aa9c-03d6f1fd71b0
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Formatted text version of Detail Variance with signed +/- prefix and correct unit (currency, %, number).
+	measure 'Detail Variance Display' =
+			
+			VAR Val = [Detail Variance]
+			VAR Fmt = [Detail Format Type]
+			RETURN
+			SWITCH(
+			    Fmt,
+			    "CURRENCY", FORMAT(Val, "+$#,##0.00;-$#,##0.00;$0.00"),
+			    "PERCENT",  FORMAT(Val, "+0.00%;-0.00%;0.00%"),
+			    "DECIMAL",  FORMAT(Val, "+#,##0.00;-#,##0.00;0.00"),
+			    "NUMBER",   FORMAT(Val, "+#,##0;-#,##0;0"),
+			    FORMAT(Val, "+#,##0.00;-#,##0.00;0.00")
+			)
+		displayFolder: Detail Page Measures & HTML
+		lineageTag: 3aafd07e-cceb-4e64-8a87-7cd450729101
+
+	/// Absolute difference between current and prior-year value for the selected row. Positive = improvement.
+	measure 'Detail Variance' =
+			
+			[Detail Value] - [Detail Value LY]
+		displayFolder: Detail Page Measures & HTML
+		lineageTag: 76468a27-1cad-49bc-a834-7691a026fcb1
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Formatted text version of Detail Value LY. Pair with Detail Value Display in the same visual.
+	measure 'Detail Value LY Display' =
+			
+			VAR Val = [Detail Value LY]
+			VAR Fmt = [Detail Format Type]
+			RETURN
+			SWITCH(
+			    Fmt,
+			    "CURRENCY", FORMAT(Val, "$#,##0.00"),
+			    "PERCENT",  FORMAT(Val, "0.00%"),
+			    "DECIMAL",  FORMAT(Val, "#,##0.00"),
+			    "NUMBER",   FORMAT(Val, "#,##0"),
+			    FORMAT(Val, "#,##0.00")
+			)
+		displayFolder: Detail Page Measures & HTML
+		lineageTag: 0f193890-51eb-466e-acc4-502933bd9b35
+
+	/// Returns the prior-year value for whichever row is selected. Applies DATEADD -1 YEAR to every metric in the switch.
+	measure 'Detail Value LY' =
+			
+			VAR RowLabel = SELECTEDVALUE('_Detail Rows'[Row Label])
+			RETURN
+			SWITCH(
+			    RowLabel,
+			    "Gross Sales Revenue",         CALCULATE([Total Revenue], DATEADD(dim_date[Date], -1, YEAR)),
+			    "(-) Discounts Applied",       CALCULATE([Total Discount Amount], DATEADD(dim_date[Date], -1, YEAR)),
+			    "(-) Returns & Refunds",       CALCULATE([Total Return Revenue Loss], DATEADD(dim_date[Date], -1, YEAR)),
+			    "= Net Revenue",               CALCULATE([Net Revenue], DATEADD(dim_date[Date], -1, YEAR)),
+			
+			    "(-) Product Cost",            CALCULATE([Total Product Cost], DATEADD(dim_date[Date], -1, YEAR)),
+			    "= Gross Profit",              CALCULATE([Gross Profit], DATEADD(dim_date[Date], -1, YEAR)),
+			    "Gross Profit Margin %",       CALCULATE([Gross Profit Margin %], DATEADD(dim_date[Date], -1, YEAR)),
+			    "Discount Rate %",             CALCULATE([Discount Rate %], DATEADD(dim_date[Date], -1, YEAR)),
+			    "Return Impact %",             CALCULATE([Return Impact %], DATEADD(dim_date[Date], -1, YEAR)),
+			
+			    "Total Orders",                CALCULATE([Total Orders], DATEADD(dim_date[Date], -1, YEAR)),
+			    "Average Order Value",         CALCULATE([Average Order Value], DATEADD(dim_date[Date], -1, YEAR)),
+			    "Total Units Sold",            CALCULATE([Total Units Sold], DATEADD(dim_date[Date], -1, YEAR)),
+			    "Avg Units per Order",         CALCULATE([Avg Units per Order], DATEADD(dim_date[Date], -1, YEAR)),
+			    "Net Revenue per Unit",        CALCULATE([Net Revenue per Unit], DATEADD(dim_date[Date], -1, YEAR)),
+			    "Avg Order Discount $",        CALCULATE([Avg Order Discount $], DATEADD(dim_date[Date], -1, YEAR)),
+			    "Discount Penetration %",      CALCULATE([Discount Penetration %], DATEADD(dim_date[Date], -1, YEAR)),
+			
+			    "Total Customers",             CALCULATE([Total Customers], DATEADD(dim_date[Date], -1, YEAR)),
+			    "New Customers",               CALCULATE([New Customers], DATEADD(dim_date[Date], -1, YEAR)),
+			    "Returning Customers",         CALCULATE([Returning Customers], DATEADD(dim_date[Date], -1, YEAR)),
+			    "High Value Customers",        CALCULATE([High Value Customers], DATEADD(dim_date[Date], -1, YEAR)),
+			    "Repeat Customer Rate %",      CALCULATE([Repeat Customer Rate %], DATEADD(dim_date[Date], -1, YEAR)),
+			    "Customer Retention Rate %",   CALCULATE([Customer Retention Rate %], DATEADD(dim_date[Date], -1, YEAR)),
+			    "Customer Lifetime Value",     CALCULATE([Customer Lifetime Value], DATEADD(dim_date[Date], -1, YEAR)),
+			
+			    "Delivery Rate %",             CALCULATE([Delivery Rate %], DATEADD(dim_date[Date], -1, YEAR)),
+			    "Return Rate %",               CALCULATE([Return Rate %], DATEADD(dim_date[Date], -1, YEAR)),
+			    "Cancellation Rate %",         CALCULATE([Cancellation Rate %], DATEADD(dim_date[Date], -1, YEAR)),
+			    "Fulfillment Rate %",          CALCULATE([Fulfillment Rate %], DATEADD(dim_date[Date], -1, YEAR)),
+			    BLANK()
+			)
+		displayFolder: Detail Page Measures & HTML
+		lineageTag: 4e055430-c835-439a-88e7-19f8a184b2a4
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Formatted text version of Detail Value using the row-specific format type. Use in matrix or table visuals as the display column.
+	measure 'Detail Value Display' =
+			
+			VAR Val = [Detail Value]
+			VAR Fmt = [Detail Format Type]
+			RETURN
+			SWITCH(
+			    Fmt,
+			    "CURRENCY", FORMAT(Val, "$#,##0.00"),
+			    "PERCENT",  FORMAT(Val, "0.00%"),
+			    "DECIMAL",  FORMAT(Val, "#,##0.00"),
+			    "NUMBER",   FORMAT(Val, "#,##0"),
+			    FORMAT(Val, "#,##0.00")
+			)
+		displayFolder: Detail Page Measures & HTML
+		lineageTag: 55c5c802-25e4-46e7-a560-d1abe61d595e
+
+	/// Returns the current-period value for whichever row is selected in the _Detail Rows table. Switch router used by Detail Page HTML.
+	measure 'Detail Value' =
+			
+			VAR RowLabel = SELECTEDVALUE('_Detail Rows'[Row Label])
+			RETURN
+			SWITCH(
+			    RowLabel,
+			    "Gross Sales Revenue",         [Total Revenue],
+			    "(-) Discounts Applied",       [Total Discount Amount],
+			    "(-) Returns & Refunds",       [Total Return Revenue Loss],
+			    "= Net Revenue",               [Net Revenue],
+			
+			    "(-) Product Cost",            [Total Product Cost],
+			    "= Gross Profit",              [Gross Profit],
+			    "Gross Profit Margin %",       [Gross Profit Margin %],
+			    "Discount Rate %",             [Discount Rate %],
+			    "Return Impact %",             [Return Impact %],
+			
+			    "Total Orders",                [Total Orders],
+			    "Average Order Value",         [Average Order Value],
+			    "Total Units Sold",            [Total Units Sold],
+			    "Avg Units per Order",         [Avg Units per Order],
+			    "Net Revenue per Unit",        [Net Revenue per Unit],
+			    "Avg Order Discount $",        [Avg Order Discount $],
+			    "Discount Penetration %",      [Discount Penetration %],
+			
+			    "Total Customers",             [Total Customers],
+			    "New Customers",               [New Customers],
+			    "Returning Customers",         [Returning Customers],
+			    "High Value Customers",        [High Value Customers],
+			    "Repeat Customer Rate %",      [Repeat Customer Rate %],
+			    "Customer Retention Rate %",   [Customer Retention Rate %],
+			    "Customer Lifetime Value",     [Customer Lifetime Value],
+			
+			    "Delivery Rate %",             [Delivery Rate %],
+			    "Return Rate %",               [Return Rate %],
+			    "Cancellation Rate %",         [Cancellation Rate %],
+			    "Fulfillment Rate %",          [Fulfillment Rate %],
+			    BLANK()
+			)
+		displayFolder: Detail Page Measures & HTML
+		lineageTag: 6b49dd7d-64ea-44bc-8e67-fe3fe23b54f8
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Full HTML financial detail table showing all P&L rows with Current, LY, Variance and YoY % columns. Drop into an HTML content visual on the Detail page.
+	measure 'Detail Page HTML' =
+			
+			VAR _Title = "Financial Performance Details"
+			
+			VAR _RowsBase =
+			    ADDCOLUMNS(
+			        '_Detail Rows',
+			        "CurrentVal", [Detail Value],
+			        "LYVal", [Detail Value LY],
+			        "VarVal", [Detail Variance],
+			        "YoYVal", [Detail YoY %],
+			        "FmtType", [Detail Format Type]
+			    )
+			
+			VAR _RowsFiltered =
+			    FILTER(
+			        _RowsBase,
+			        NOT ISBLANK([CurrentVal]) || NOT ISBLANK([LYVal])
+			    )
+			
+			VAR _RowsHTML =
+			    CONCATENATEX(
+			        _RowsFiltered,
+			        VAR _Section = '_Detail Rows'[Section]
+			        VAR _RowLabel = '_Detail Rows'[Row Label]
+			        VAR _Current = [CurrentVal]
+			        VAR _LY = [LYVal]
+			        VAR _Var = [VarVal]
+			        VAR _YoY = [YoYVal]
+			        VAR _Fmt = [FmtType]
+			
+			        VAR _CurrSort = '_Detail Rows'[Sort]
+			
+			        VAR _PrevSection =
+			            MAXX(
+			                FILTER(_RowsFiltered, '_Detail Rows'[Sort] = _CurrSort - 1),
+			                '_Detail Rows'[Section]
+			            )
+			
+			        VAR _ShowSection =
+			            IF(_Section <> _PrevSection || _CurrSort = 1, 1, 0)
+			
+			        VAR _IsTotalRow =
+			            IF(
+			                _RowLabel = "= Net Revenue" ||
+			                _RowLabel = "= Gross Profit",
+			                1,
+			                0
+			            )
+			
+			        VAR _IndentLabel =
+			            "&nbsp;&nbsp;&nbsp;&nbsp;" & _RowLabel
+			
+			        VAR _IsExactNumberRow =
+			            _RowLabel IN {
+			                "Total Orders",
+			                "Total Units Sold",
+			                "Total Customers",
+			                "New Customers",
+			                "Returning Customers",
+			                "High Value Customers"
+			            }
+			
+			        VAR _CurrentText =
+			            SWITCH(
+			                TRUE(),
+			                ISBLANK(_Current), "",
+			
+			                _Fmt = "CURRENCY" && ABS(_Current) >= 1000000000, "$" & FORMAT(DIVIDE(_Current,1000000000), "0.00") & "B",
+			                _Fmt = "CURRENCY" && ABS(_Current) >= 1000000,    "$" & FORMAT(DIVIDE(_Current,1000000), "0.00") & "M",
+			                _Fmt = "CURRENCY" && ABS(_Current) >= 1000,       "$" & FORMAT(DIVIDE(_Current,1000), "0.00") & "K",
+			                _Fmt = "CURRENCY",                                "$" & FORMAT(_Current, "#,##0.00"),
+			
+			                _Fmt = "NUMBER" && _IsExactNumberRow,             FORMAT(_Current, "#,##0"),
+			                _Fmt = "NUMBER" && ABS(_Current) >= 1000000000,   FORMAT(DIVIDE(_Current,1000000000), "0.00") & "B",
+			                _Fmt = "NUMBER" && ABS(_Current) >= 1000000,      FORMAT(DIVIDE(_Current,1000000), "0.00") & "M",
+			                _Fmt = "NUMBER" && ABS(_Current) >= 1000,         FORMAT(DIVIDE(_Current,1000), "0.00") & "K",
+			                _Fmt = "NUMBER",                                  FORMAT(_Current, "#,##0"),
+			
+			                _Fmt = "PERCENT",                                 FORMAT(_Current, "0.0%"),
+			                _Fmt = "DECIMAL",                                 FORMAT(_Current, "#,##0.00"),
+			                FORMAT(_Current, "#,##0.00")
+			            )
+			
+			        VAR _LYText =
+			            SWITCH(
+			                TRUE(),
+			                ISBLANK(_LY), "",
+			
+			                _Fmt = "CURRENCY" && ABS(_LY) >= 1000000000, "$" & FORMAT(DIVIDE(_LY,1000000000), "0.00") & "B",
+			                _Fmt = "CURRENCY" && ABS(_LY) >= 1000000,    "$" & FORMAT(DIVIDE(_LY,1000000), "0.00") & "M",
+			                _Fmt = "CURRENCY" && ABS(_LY) >= 1000,       "$" & FORMAT(DIVIDE(_LY,1000), "0.00") & "K",
+			                _Fmt = "CURRENCY",                            "$" & FORMAT(_LY, "#,##0.00"),
+			
+			                _Fmt = "NUMBER" && _IsExactNumberRow,         FORMAT(_LY, "#,##0"),
+			                _Fmt = "NUMBER" && ABS(_LY) >= 1000000000,   FORMAT(DIVIDE(_LY,1000000000), "0.00") & "B",
+			                _Fmt = "NUMBER" && ABS(_LY) >= 1000000,      FORMAT(DIVIDE(_LY,1000000), "0.00") & "M",
+			                _Fmt = "NUMBER" && ABS(_LY) >= 1000,         FORMAT(DIVIDE(_LY,1000), "0.00") & "K",
+			                _Fmt = "NUMBER",                              FORMAT(_LY, "#,##0"),
+			
+			                _Fmt = "PERCENT",                             FORMAT(_LY, "0.0%"),
+			                _Fmt = "DECIMAL",                             FORMAT(_LY, "#,##0.00"),
+			                FORMAT(_LY, "#,##0.00")
+			            )
+			
+			        VAR _VarText =
+			            SWITCH(
+			                TRUE(),
+			                ISBLANK(_Var), "",
+			
+			                _Fmt = "CURRENCY" && ABS(_Var) >= 1000000000, FORMAT(DIVIDE(_Var,1000000000), "+$0.00B;-$0.00B;$0.00B"),
+			                _Fmt = "CURRENCY" && ABS(_Var) >= 1000000,    FORMAT(DIVIDE(_Var,1000000), "+$0.00M;-$0.00M;$0.00M"),
+			                _Fmt = "CURRENCY" && ABS(_Var) >= 1000,       FORMAT(DIVIDE(_Var,1000), "+$0.00K;-$0.00K;$0.00K"),
+			                _Fmt = "CURRENCY",                            FORMAT(_Var, "+$#,##0.00;-$#,##0.00;$0.00"),
+			
+			                _Fmt = "NUMBER" && _IsExactNumberRow,         FORMAT(_Var, "+#,##0;-#,##0;0"),
+			                _Fmt = "NUMBER" && ABS(_Var) >= 1000000000,   FORMAT(DIVIDE(_Var,1000000000), "+0.00B;-0.00B;0.00B"),
+			                _Fmt = "NUMBER" && ABS(_Var) >= 1000000,      FORMAT(DIVIDE(_Var,1000000), "+0.00M;-0.00M;0.00M"),
+			                _Fmt = "NUMBER" && ABS(_Var) >= 1000,         FORMAT(DIVIDE(_Var,1000), "+0.00K;-0.00K;0.00K"),
+			                _Fmt = "NUMBER",                              FORMAT(_Var, "+#,##0;-#,##0;0"),
+			
+			                _Fmt = "PERCENT",                             FORMAT(_Var, "+0.0%;-0.0%;0.0%"),
+			                _Fmt = "DECIMAL",                             FORMAT(_Var, "+#,##0.00;-#,##0.00;0.00"),
+			                FORMAT(_Var, "+#,##0.00;-#,##0.00;0.00")
+			            )
+			
+			        VAR _YoYText =
+			            IF(
+			                ISBLANK(_YoY),
+			                "",
+			                FORMAT(_YoY, "+0.0%;-0.0%;0.0%")
+			            )
+			
+			        VAR _VarColor =
+			            IF(
+			                ISBLANK(_Var),
+			                "#111111",
+			                IF(_Var > 0, "#146eb4", IF(_Var < 0, "#c0392b", "#111111"))
+			            )
+			
+			        VAR _YoYColor =
+			            IF(
+			                ISBLANK(_YoY),
+			                "#111111",
+			                IF(_YoY > 0, "#146eb4", IF(_YoY < 0, "#c0392b", "#111111"))
+			            )
+			
+			        VAR _SectionHTML =
+			            IF(
+			                _ShowSection = 1,
+			                "
+			                <tr class='section-row'>
+			                    <td colspan='5'>" & _Section & "</td>
+			                </tr>
+			                ",
+			                ""
+			            )
+			
+			        VAR _DataRowHTML =
+			            "
+			            <tr class='" & IF(_IsTotalRow = 1, "total-row", "data-row") & "'>
+			                <td class='metric'>" & _IndentLabel & "</td>
+			                <td class='val val-pad'>" & _CurrentText & "</td>
+			                <td class='val val-pad'>" & _LYText & "</td>
+			                <td class='val val-pad' style='color:" & _VarColor & ";'>" & _VarText & "</td>
+			                <td class='val val-pad' style='color:" & _YoYColor & ";'>" & _YoYText & "</td>
+			            </tr>
+			            "
+			
+			        RETURN
+			            _SectionHTML & _DataRowHTML,
+			        "",
+			        '_Detail Rows'[Sort], ASC
+			    )
+			
+			VAR _HTML =
+			"
+			<style>
+			html, body{
+			    margin:0;
+			    padding:0;
+			    width:100%;
+			    height:100%;
+			    background:#ffffff;
+			    font-family:Segoe UI, Arial, sans-serif;
+			    overflow:hidden;
+			}
+			*{
+			    box-sizing:border-box;
+			}
+			.wrap{
+			    width:100%;
+			    height:100%;
+			    background:#ffffff;
+			    border:none;
+			    border-radius:10px;
+			    overflow:hidden;
+			    display:flex;
+			    flex-direction:column;
+			}
+			.title{
+			    flex:0 0 40px;
+			    height:40px;
+			    display:flex;
+			    align-items:center;
+			    justify-content:center;
+			    font-size:15px;
+			    font-weight:700;
+			    color:#111111;
+			    border-bottom:1px solid #ececec;
+			    background:#ffffff;
+			}
+			.table-wrap{
+			    flex:1 1 auto;
+			    min-height:0;
+			    overflow-y:auto;
+			    overflow-x:hidden;
+			    padding:0;
+			
+			    -ms-overflow-style:none;
+			    scrollbar-width:none;
+			}
+			.table-wrap::-webkit-scrollbar{
+			    width:0px;
+			    height:0px;
+			    display:none;
+			}
+			.table-wrap::-webkit-scrollbar-track{
+			    display:none;
+			}
+			.table-wrap::-webkit-scrollbar-thumb{
+			    display:none;
+			}
+			.tbl{
+			    width:100%;
+			    border-collapse:separate;
+			    border-spacing:0;
+			    table-layout:fixed;
+			}
+			.tbl thead th{
+			    background:#f2f2f2;
+			    color:#111111;
+			    font-size:13px;
+			    font-weight:700;
+			    text-align:center;
+			    padding:10px 12px;
+			    border-bottom:1px solid #e5e5e5;
+			}
+			.tbl thead th.metric-head{
+			    text-align:left;
+			    padding-left:18px;
+			}
+			.tbl tbody td{
+			    padding:8px 10px;
+			    font-size:13px;
+			    border-bottom:1px solid #f3f3f3;
+			    vertical-align:middle;
+			}
+			.metric{
+			    text-align:left;
+			    color:#111111;
+			    padding-left:18px;
+			    padding-right:12px;
+			    white-space:nowrap;
+			    overflow:hidden;
+			    text-overflow:ellipsis;
+			}
+			.val{
+			    text-align:right;
+			    font-weight:600;
+			    color:#111111;
+			    white-space:nowrap;
+			}
+			.val-pad{
+			    padding-left:22px !important;
+			    padding-right:22px !important;
+			}
+			.section-row td{
+			    background:#ececf1;
+			    color:#232f3e;
+			    font-size:13px;
+			    font-weight:700;
+			    padding:10px 16px;
+			    border-top:1px solid #e5e5e5;
+			    border-bottom:1px solid #e5e5e5;
+			}
+			.total-row td{
+			    background:#eef3fb;
+			    font-weight:700;
+			}
+			.data-row:hover td{
+			    background:#fafafa;
+			}
+			.col-metric{ width:40%; }
+			.col-cur{ width:15%; }
+			.col-ly{ width:15%; }
+			.col-var{ width:15%; }
+			.col-yoy{ width:15%; }
+			</style>
+			
+			<div class='wrap'>
+			    <div class='title'>" & _Title & "</div>
+			    <div class='table-wrap'>
+			        <table class='tbl'>
+			            <colgroup>
+			                <col class='col-metric'>
+			                <col class='col-cur'>
+			                <col class='col-ly'>
+			                <col class='col-var'>
+			                <col class='col-yoy'>
+			            </colgroup>
+			            <thead>
+			                <tr>
+			                    <th class='metric-head'>Metric</th>
+			                    <th>Current</th>
+			                    <th>LY</th>
+			                    <th>Variance</th>
+			                    <th>YoY %</th>
+			                </tr>
+			            </thead>
+			            <tbody>
+			                " & _RowsHTML & "
+			            </tbody>
+			        </table>
+			    </div>
+			</div>
+			"
+			
+			RETURN
+			_HTML
+		displayFolder: Detail Page Measures & HTML
+		lineageTag: 878b925b-333a-4903-b761-3530b0d31183
+
+	/// Compound Annual Growth Rate of Net Revenue from the first year to the most recent year in the model. Use on Overview page as a headline growth KPI alongside YoY %.
+	measure 'Revenue CAGR %' =
+			VAR _FirstYear = MINX(ALL(dim_date[Year]), dim_date[Year])
+			VAR _LastYear = MAXX(ALL(dim_date[Year]), dim_date[Year])
+			VAR _Years = _LastYear - _FirstYear
+			VAR _FirstYearRev = CALCULATE([Net Revenue], dim_date[Year] = _FirstYear)
+			VAR _LastYearRev = CALCULATE([Net Revenue], dim_date[Year] = _LastYear)
+			RETURN
+			IF(_Years > 0 && _FirstYearRev > 0, POWER(_LastYearRev / _FirstYearRev, 1 / _Years) - 1, BLANK())
+		formatString: 0.00%
+		displayFolder: Growth & Alerts
+		lineageTag: 478abb36-f044-4cda-bdc1-1dcfc794d022
+
+	/// Compares Return Revenue growth vs Net Revenue growth YoY. Returns a warning string if returns are growing faster than revenue — use as a card visual or conditional title on the Details or Sales page.
+	measure 'Returns Growth Alert' =
+			VAR _RetLY = CALCULATE([Total Return Revenue Loss], DATEADD(dim_date[Date], -1, YEAR))
+			VAR _RetGrowth = DIVIDE([Total Return Revenue Loss] - _RetLY, _RetLY)
+			VAR _RevGrowth = [Revenue YoY %]
+			RETURN
+			IF(ISBLANK(_RetGrowth), BLANK(), IF(_RetGrowth > _RevGrowth, "⚠ Returns growing faster than revenue", "✓ Returns in check"))
+		displayFolder: Growth & Alerts
+		lineageTag: de455523-48ba-43eb-86ad-67638a7ae3dc
+
+	/// Flags when revenue is growing >5% YoY but gross profit margin is essentially flat (<0.5pp change). Use as a warning card on Overview or Details page to highlight the margin stagnation risk.
+	measure 'Margin Stagnation Alert' =
+			VAR _MarginNow = [Gross Profit Margin %]
+			VAR _MarginLY = CALCULATE([Gross Profit Margin %], DATEADD(dim_date[Date], -1, YEAR))
+			VAR _MarginChg = _MarginNow - _MarginLY
+			VAR _RevGrowth = [Revenue YoY %]
+			RETURN
+			IF(ISBLANK(_MarginLY), BLANK(), IF(_RevGrowth > 0.05 && ABS(_MarginChg) < 0.005, "⚠ Revenue growing but margin flat", "✓ Margin expanding"))
+		displayFolder: Growth & Alerts
+		lineageTag: 93a5a3b5-06f0-4ed6-ab7a-977a15e18895
+
+	/// Returns the name of the highest revenue region in the current filter context. Use as a dynamic text card on Overview or Home page to instantly surface the leading region.
+	measure 'Top Region' = MAXX(TOPN(1, ALL(dim_region[RegionName]), [Net Revenue], DESC), dim_region[RegionName])
+		displayFolder: Growth & Alerts
+		lineageTag: 896b3b7f-a874-4ada-865f-a49745936b02
+
+	/// Revenue from orders in Placed or Confirmed status — not yet delivered or cancelled. These orders are at risk of cancellation. Use as an alert card on the Sales page to flag pipeline exposure.
+	measure 'At Risk Revenue' = CALCULATE([Net Revenue], fact_sales_order_item[OrderStatus] IN {"Placed", "Confirmed"})
+		formatString: $#,##0.00
+		displayFolder: Growth & Alerts
+		lineageTag: 78c3ef4f-b0ff-4187-ad99-7535d5e95a12
+
+	/// Each category's Gross Profit as a % of total Gross Profit across all categories. Use alongside Revenue Contribution % in the Products page category chart to show which categories are most profit-contributive (not just revenue-contributive).
+	measure 'Category GP Contribution %' = DIVIDE([Gross Profit], CALCULATE([Gross Profit], ALL(dim_product[CategoryName])))
+		formatString: 0.0%
+		displayFolder: Profitability
+		lineageTag: 7f00efd2-d1d2-4287-b815-a910c3faf18e
+
+	/// Net Revenue divided by distinct customer count within each loyalty tier. Use on the Customers page Loyalty Tier bar chart as a secondary axis to show revenue per head per tier — reveals that Platinum customers generate more revenue per person despite being fewer in count.
+	measure 'Revenue per Loyalty Tier' = DIVIDE([Net Revenue], [Total Customers])
+		formatString: $#,##0
+		displayFolder: Customers
+		lineageTag: 50f9e19f-3998-441c-a0a5-da628e76dc2e
+
+	/// Net Revenue YoY % for each sales channel. Use on the Sales page Channel bar chart as a secondary axis line so stakeholders can see not just which channel is biggest but which is growing fastest.
+	measure 'Channel YoY %' =
+			VAR _LY = CALCULATE([Net Revenue], DATEADD(dim_date[Date], -1, YEAR))
+			RETURN DIVIDE([Net Revenue] - _LY, _LY)
+		formatString: 0.0%
+		displayFolder: Time Intelligence
+		lineageTag: a611d1d5-fa88-4bcb-b9e6-220a4762dd61
+
+	/// Returns a warning string when Delivery Rate % falls below 85% — the minimum acceptable threshold for e-commerce. Use as a conditional card visual on the Sales page to immediately flag fulfillment problems.
+	measure 'Delivery Rate Alert' = IF([Delivery Rate %] < 0.85, "⚠ Delivery rate below 85% threshold — " & FORMAT([Delivery Rate %], "0.0%"), "✓ Delivery rate healthy — " & FORMAT([Delivery Rate %], "0.0%"))
+		displayFolder: Growth & Alerts
+		lineageTag: 34f21d04-61fc-490d-b2c0-e5eeae6daa14
+
+	/// Returns the Net Revenue for 2 years ago using DATEADD(-2, YEAR). Enables a 3-line trend chart (Current, LY, 2Y Ago) on the Sales or Overview page to show multi-year seasonality patterns.
+	measure 'Net Revenue 2Y Trend' = CALCULATE([Net Revenue], DATEADD(dim_date[Date], -2, YEAR))
+		formatString: $#,##0
+		displayFolder: Time Intelligence
+		lineageTag: de32a132-9bd1-4a73-afe3-0e2d15e16848
+
+	/// Net Revenue grouped by customer age band. Use on Customers page Age Group chart as a secondary axis alongside customer count to show which age groups generate the most revenue — not just which have the most customers.
+	measure 'Age Band Revenue' = CALCULATE([Net Revenue], ALLEXCEPT(dim_customer, dim_customer[AgeBand]))
+		formatString: $#,##0
+		displayFolder: Customers
+		lineageTag: fcb620ed-222e-4520-a0cb-3385b9f5e08d
+
+	/// Returns a warning string if Cancellation Rate % exceeds 8%. Use as an alert card on the Sales page alongside the Order Status chart.
+	measure 'Cancellation Rate Alert' = IF([Cancellation Rate %] > 0.08, "⚠ Cancellation rate above 8% — " & FORMAT([Cancellation Rate %], "0.0%"), "✓ Cancellation rate healthy — " & FORMAT([Cancellation Rate %], "0.0%"))
+		displayFolder: Growth & Alerts
+		lineageTag: 683796ba-4450-40d5-97a7-eba6ceac495e
+
+	/// Placeholder column. Keep hidden. Only the measures in this table are used in reports.
+	column _
+		isHidden
+		formatString: 0
+		lineageTag: 9ad0a44f-337d-42db-8655-e9293d2abd98
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [_]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition _Measures = calculated
+		mode: import
+		source = Row("_", BLANK())
+
+	annotation 436ba87b-9c83-4389-a31b-ebd06a36be98 = {"Expression":""}
+

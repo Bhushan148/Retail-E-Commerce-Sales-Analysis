@@ -1,0 +1,181 @@
+table dim_product
+	lineageTag: 7d39ab81-5df5-4b0d-84fb-ba7366634c4f
+
+	/// Primary key. Joins to fact_sales_order_item[ProductKey].
+	column ProductKey
+		dataType: int64
+		formatString: 0
+		lineageTag: a45e8b71-9c0f-47c7-a3bb-d962535629c3
+		summarizeBy: none
+		sourceColumn: ProductKey
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Business identifier for the product. Used in data management; not displayed in report visuals.
+	column ProductID
+		dataType: string
+		lineageTag: 7dc469f3-05a3-408a-81dc-f13e7f5ed115
+		summarizeBy: none
+		sourceColumn: ProductID
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Stock keeping unit code. Used in DISTINCTCOUNT for Product Revenue per SKU shown on the Products page KPI card.
+	column SKU
+		dataType: string
+		lineageTag: 170c8407-d817-4035-9d2a-c678285879c2
+		summarizeBy: none
+		sourceColumn: SKU
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Full product name. Used as the row dimension in the Product Performance Detail table on the Products page and in the ProductPerformanceMatrixHTML visual.
+	column ProductName
+		dataType: string
+		lineageTag: 31c50425-d85d-44bd-8a6c-78c9495c087f
+		summarizeBy: none
+		sourceColumn: ProductName
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Brand name of the product. Available as a filter dimension; not currently used as a visual axis in the report.
+	column Brand
+		dataType: string
+		lineageTag: a141e64a-ba7a-4527-9fe6-a7b812e9bdf9
+		summarizeBy: none
+		sourceColumn: Brand
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Numeric key for product category. Used internally; CategoryName is used in report visuals.
+	column CategoryKey
+		dataType: int64
+		formatString: 0
+		lineageTag: 6aa8c597-a10b-4eac-ae39-c9b9af5200a5
+		summarizeBy: none
+		sourceColumn: CategoryKey
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Product category name (Electronics, Fashion, Home & Kitchen, Sports & Fitness, Beauty & Personal Care). Used as the axis in the Revenue by Category bar chart on the Products page and as a slicer on the Details page.
+	column CategoryName
+		dataType: string
+		lineageTag: c75ed76f-0399-4478-bea4-ccc5840bd6bc
+		summarizeBy: none
+		sourceColumn: CategoryName
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Product sub-category name. Available as a drill-through or filter dimension; not shown as a chart axis in current report pages.
+	column SubcategoryName
+		dataType: string
+		lineageTag: 1a88bf94-df17-4f99-993d-b1daa65758d9
+		summarizeBy: none
+		sourceColumn: SubcategoryName
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Department grouping above category. Available as a filter; not shown as a visual axis in current report pages.
+	column Department
+		dataType: string
+		lineageTag: d37eae53-f6d1-4b38-b067-9bc983abe58c
+		summarizeBy: none
+		sourceColumn: Department
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Type classification within category (e.g. Standard, Premium, Bundle). Not currently used as a visual axis.
+	column ProductType
+		dataType: string
+		lineageTag: 22ef8de2-86c9-441f-b502-482f426125b1
+		summarizeBy: none
+		sourceColumn: ProductType
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Product colour. Not currently used in any report visual.
+	column Color
+		dataType: string
+		lineageTag: 1f53516c-dbe8-4884-bf0b-fd280643d150
+		summarizeBy: none
+		sourceColumn: Color
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Product size (where applicable). Not currently used in any report visual.
+	column Size
+		dataType: string
+		lineageTag: 69308abb-52d5-4b02-b004-4f80b2b6e5d2
+		summarizeBy: none
+		sourceColumn: Size
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Seasonal tag (e.g. Summer, Winter). Not currently used in any report visual.
+	column Season
+		dataType: string
+		lineageTag: c351b8ac-01db-49d7-8585-2642f94a0783
+		summarizeBy: none
+		sourceColumn: Season
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Standard cost per unit from the product master. Used for product-level cost analysis; actual cost per transaction is in fact_sales_order_item[ProductCostUSD].
+	column UnitCostUSD
+		dataType: double
+		lineageTag: 3ffc425d-3d19-4e0b-987f-7545fa72eb00
+		summarizeBy: none
+		sourceColumn: UnitCostUSD
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// List price from the product master. Not directly used in report measures; actual sold price is UnitPriceUSD in the fact table.
+	column StandardPriceUSD
+		dataType: double
+		lineageTag: 59768713-ddfe-4b1e-a11b-0817b50d0cc3
+		summarizeBy: none
+		sourceColumn: StandardPriceUSD
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Flag: 1 = product is currently active and for sale. Used in Total Active Products measure shown on the Products page left KPI card.
+	column IsActive
+		dataType: int64
+		formatString: 0
+		lineageTag: be8ea77b-4f5c-486b-8cdd-e6c9264a28b9
+		summarizeBy: none
+		sourceColumn: IsActive
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Calculated column derived from StandardPriceUSD: Budget (<$50), Standard ($50-$150), Premium ($150-$250), Luxury ($250+). Used as the axis in the Revenue by Price Band bar chart on the Products page.
+	column 'Price Band' =
+			SWITCH(
+			    TRUE(),
+			    dim_product[StandardPriceUSD] < 50, "Budget (Under $50)",
+			    dim_product[StandardPriceUSD] < 150, "Standard ($50–$150)",
+			    dim_product[StandardPriceUSD] < 250, "Premium ($150–$250)",
+			    "Luxury ($250+)"
+			)
+		lineageTag: 1bbf7f49-7b5f-4258-a431-c719dcd9f19a
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_product = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("<sql-endpoint-id>.datawarehouse.fabric.microsoft.com", "LH_Ecommerce"),
+				    gold_dim_product = Source{[Schema="gold",Item="dim_product"]}[Data]
+				in
+				    gold_dim_product
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

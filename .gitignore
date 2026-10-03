@@ -1,0 +1,8 @@
+*.pbix
+*.bak
+.DS_Store
+Thumbs.db
+
+# Power BI Desktop local-only files
+**/.pbi/localSettings.json
+**/.pbi/cache.abf

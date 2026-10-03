@@ -1,0 +1,332 @@
+/// Date table. One row per calendar date from 2021 to 2026. Used for all time-based filtering and time intelligence measures. Includes both calendar and fiscal year columns.
+table dim_date
+	lineageTag: 36df0f0c-8c18-4023-bea0-c983c2fe02ae
+	dataCategory: Time
+
+	/// The full calendar date. Primary key and the join column to fact_sales_order_item[OrderDate]. All time-intelligence measures reference this column.
+	column Date
+		isUnique
+		formatString: General Date
+		lineageTag: e7695aa7-ae98-4bc8-b702-c0cab75a1a6a
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Date]
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Numeric date in YYYYMMDD format. Used for fast sorting and joining; not shown directly in report visuals.
+	column DateKey
+		isHidden
+		formatString: 0
+		lineageTag: 7e3ac3a5-84ad-41dd-9fab-8ab95fbd6037
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [DateKey]
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Calendar year (e.g. 2024). Used as column headers in the Details page P&L matrix and as the Year slicer on the Details page.
+	column Year
+		formatString: 0
+		lineageTag: 6c4568d8-4a73-4fc7-b4e4-6fc49d442953
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Year]
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Quarter label (Q1-Q4). Available as a time filter; not currently a visual axis in the report.
+	column Quarter
+		lineageTag: 0961d761-d9d7-4cd3-8354-d68ef1e3762a
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Quarter]
+		sortByColumn: MonthNumber
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Combined year-quarter label (e.g. 2024-Q1). Available for quarterly trend charts.
+	column YearQuarter
+		lineageTag: 59ee0f71-80f4-49ee-be13-967f7dd25b0d
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [YearQuarter]
+		sortByColumn: YearMonthSort
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Month as a number (1-12). Used to correctly sort MonthName in visual axes. Always use this to sort MonthYearLabel or MonthName on any chart.
+	column MonthNumber
+		formatString: 0
+		lineageTag: 52e291d9-c551-49b0-bbdd-12735be32326
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [MonthNumber]
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Full month name (January-December). Used as the axis on the Sales trend chart and Overview combo chart. Must be sorted by MonthNumber.
+	column MonthName
+		lineageTag: 178d7071-e74d-4322-8b79-3ab5127efe8b
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [MonthName]
+		sortByColumn: MonthNumber
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Abbreviated month name (Jan-Dec). Used as axis labels on the Customers retention trend chart and Sales MoM chart. Must be sorted by MonthNumber.
+	column MonthShort
+		lineageTag: 524b96c1-eeb7-49e6-832f-d9ca689d66d0
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [MonthShort]
+		sortByColumn: MonthNumber
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Year-month in YYYY-MM format. Useful for monthly trend chart axes.
+	column YearMonth
+		lineageTag: 8f4ae526-287e-40b6-8798-19ad1b0b88a5
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [YearMonth]
+		sortByColumn: YearMonthSort
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Friendly month-year label (e.g. Mar 2024). Used as chart axis labels. Must be sorted by YearMonthSort.
+	column MonthYearLabel
+		lineageTag: 6f2c7cce-f875-4fdb-bba1-fffae7ffe502
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [MonthYearLabel]
+		sortByColumn: YearMonthSort
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Numeric sort key for MonthYearLabel (e.g. 202403). Always set this as the Sort By column for MonthYearLabel on any visual.
+	column YearMonthSort
+		formatString: 0
+		lineageTag: 2b34efaf-aee5-4817-a1d6-8eac8a168df6
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [YearMonthSort]
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Day of the month (1-31). Not currently used as a visual axis.
+	column Day
+		formatString: 0
+		lineageTag: fa969de8-1cbb-47bc-b924-3114435cba33
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Day]
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Full weekday name (Monday-Sunday). Available for day-of-week analysis; not currently in report visuals.
+	column DayName
+		lineageTag: c548b11c-12e1-4796-b904-df2012e5efcf
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [DayName]
+		sortByColumn: WeekdayNumber
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Abbreviated weekday name (Mon-Sun). Available for compact day labels.
+	column DayShort
+		lineageTag: 5dca01e3-ce7b-4b1a-af59-5ae54b9040b0
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [DayShort]
+		sortByColumn: WeekdayNumber
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Day of week as a number (1=Monday, 7=Sunday). Used to sort DayName/DayShort correctly.
+	column WeekdayNumber
+		formatString: 0
+		lineageTag: 68ddcb40-a690-42c6-9d0d-02e28a359b00
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [WeekdayNumber]
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Week number within the year (1-53). Available for weekly trend analysis; not currently in report visuals.
+	column WeekOfYear
+		formatString: 0
+		lineageTag: c8f09f50-9473-48ef-9095-bb253b0e0d02
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [WeekOfYear]
+
+		annotation SummarizationSetBy = Automatic
+
+	/// TRUE if the date is Saturday or Sunday. Available for weekday/weekend analysis; not currently in report visuals.
+	column IsWeekend
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 0664023e-e3ac-464e-b082-92c8e9abd4ca
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [IsWeekend]
+
+		annotation SummarizationSetBy = Automatic
+
+	column FiscalYearNumber
+		formatString: 0
+		lineageTag: b60c63de-7671-428c-9a2b-2989ac0e3d3a
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [FiscalYearNumber]
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Fiscal year label (April-March cycle, e.g. FY 2024-25). Available for fiscal year filtering; not currently shown in report visuals.
+	column FiscalYear
+		lineageTag: a3e917e1-a5d7-4f19-a428-f6e40ffa115c
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [FiscalYear]
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Month number within the fiscal year (April=1, March=12). Used to sort fiscal month labels.
+	column FiscalMonthNumber
+		formatString: 0
+		lineageTag: 52f3a5e3-7ae1-4290-8fea-f7aba0563f70
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [FiscalMonthNumber]
+
+		annotation SummarizationSetBy = Automatic
+
+	column FiscalMonthShort
+		lineageTag: 40d4a80e-df36-4c34-85f5-f19f5c941637
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [FiscalMonthShort]
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Fiscal quarter label (FQ1-FQ4, starting April). Available for fiscal quarterly analysis.
+	column FiscalQuarter
+		lineageTag: 0381bcfa-f10f-4e36-b076-1cb70223e227
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [FiscalQuarter]
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Fiscal year and quarter combined label. Available for financial period reporting.
+	column FiscalYearQuarter
+		lineageTag: 3210bdcd-a52a-42db-9119-0594a45c1c35
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [FiscalYearQuarter]
+
+		annotation SummarizationSetBy = Automatic
+
+	column FiscalYearMonthSort
+		formatString: 0
+		lineageTag: 5e808f59-c153-4913-bc13-50c16a00a323
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [FiscalYearMonthSort]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_date = calculated
+		mode: import
+		source =
+				
+				ADDCOLUMNS (
+				    CALENDAR (
+				        MIN ( fact_sales_order_item[OrderDate] ),
+				        MAX ( fact_sales_order_item[OrderDate] )
+				    ),
+				
+				    -- Basic Date Parts
+				    "DateKey", YEAR ( [Date] ) * 10000 + MONTH ( [Date] ) * 100 + DAY ( [Date] ),
+				    "Year", YEAR ( [Date] ),
+				    "Quarter", "Q" & FORMAT ( [Date], "Q" ),
+				    "YearQuarter", FORMAT ( [Date], "YYYY" ) & "-Q" & FORMAT ( [Date], "Q" ),
+				
+				    -- Month
+				    "MonthNumber", MONTH ( [Date] ),
+				    "MonthName", FORMAT ( [Date], "MMMM" ),
+				    "MonthShort", FORMAT ( [Date], "MMM" ),
+				    "YearMonth", FORMAT ( [Date], "YYYY-MM" ),
+				    "MonthYearLabel", FORMAT ( [Date], "MMM YYYY" ),
+				    "YearMonthSort", YEAR ( [Date] ) * 100 + MONTH ( [Date] ),
+				
+				    -- Day / Week
+				    "Day", DAY ( [Date] ),
+				    "DayName", FORMAT ( [Date], "dddd" ),
+				    "DayShort", FORMAT ( [Date], "ddd" ),
+				    "WeekdayNumber", WEEKDAY ( [Date], 2 ),
+				    "WeekOfYear", WEEKNUM ( [Date], 2 ),
+				    "IsWeekend", IF ( WEEKDAY ( [Date], 2 ) >= 6, TRUE (), FALSE () ),
+				
+				    -- Fiscal Year (April to March)
+				    "FiscalYearNumber", IF ( MONTH ( [Date] ) >= 4, YEAR ( [Date] ), YEAR ( [Date] ) - 1 ),
+				    "FiscalYear",
+				        "FY "
+				            & IF ( MONTH ( [Date] ) >= 4, YEAR ( [Date] ), YEAR ( [Date] ) - 1 )
+				            & "-"
+				            & RIGHT ( FORMAT ( IF ( MONTH ( [Date] ) >= 4, YEAR ( [Date] ) + 1, YEAR ( [Date] ) ), "0000" ), 2 ),
+				
+				    -- Fiscal Month
+				    "FiscalMonthNumber", IF ( MONTH ( [Date] ) >= 4, MONTH ( [Date] ) - 3, MONTH ( [Date] ) + 9 ),
+				    "FiscalMonthShort",
+				        SWITCH (
+				            TRUE (),
+				            MONTH ( [Date] ) = 4, "Apr",
+				            MONTH ( [Date] ) = 5, "May",
+				            MONTH ( [Date] ) = 6, "Jun",
+				            MONTH ( [Date] ) = 7, "Jul",
+				            MONTH ( [Date] ) = 8, "Aug",
+				            MONTH ( [Date] ) = 9, "Sep",
+				            MONTH ( [Date] ) = 10, "Oct",
+				            MONTH ( [Date] ) = 11, "Nov",
+				            MONTH ( [Date] ) = 12, "Dec",
+				            MONTH ( [Date] ) = 1, "Jan",
+				            MONTH ( [Date] ) = 2, "Feb",
+				            "Mar"
+				        ),
+				
+				    -- Fiscal Quarter
+				    "FiscalQuarter",
+				        "FQ"
+				            & SWITCH (
+				                TRUE (),
+				                MONTH ( [Date] ) IN { 4, 5, 6 }, 1,
+				                MONTH ( [Date] ) IN { 7, 8, 9 }, 2,
+				                MONTH ( [Date] ) IN { 10, 11, 12 }, 3,
+				                4
+				            ),
+				
+				    "FiscalYearQuarter",
+				        "FY "
+				            & IF ( MONTH ( [Date] ) >= 4, YEAR ( [Date] ), YEAR ( [Date] ) - 1 )
+				            & "-"
+				            & RIGHT ( FORMAT ( IF ( MONTH ( [Date] ) >= 4, YEAR ( [Date] ) + 1, YEAR ( [Date] ) ), "0000" ), 2 )
+				            & " "
+				            & "FQ"
+				            & SWITCH (
+				                TRUE (),
+				                MONTH ( [Date] ) IN { 4, 5, 6 }, 1,
+				                MONTH ( [Date] ) IN { 7, 8, 9 }, 2,
+				                MONTH ( [Date] ) IN { 10, 11, 12 }, 3,
+				                4
+				            ),
+				
+				    "FiscalYearMonthSort",
+				        ( IF ( MONTH ( [Date] ) >= 4, YEAR ( [Date] ), YEAR ( [Date] ) - 1 ) * 100 )
+				            + IF ( MONTH ( [Date] ) >= 4, MONTH ( [Date] ) - 3, MONTH ( [Date] ) + 9 )
+				)
+
+	annotation PBI_Id = 3d836e5c7da8434aaffa96e56653d5d4
+

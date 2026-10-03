@@ -1,0 +1,32 @@
+/// Field Parameter table for the KPI Selector slicer. Add the KPI Selector column as a slicer on each page. The 'Selected KPI Value', 'Selected KPI YoY %' and 'Selected KPI MoM %' measures in _Measures will then respond dynamically.
+table 'KPI Selector'
+	lineageTag: c8f642ac-9e1e-417c-9cde-1f8689239663
+
+	/// KPI display name — use this column as a Slicer on every report page.
+	column 'KPI Selector'
+		lineageTag: 2398f8e4-b5c8-422d-9db4-94282b765ce2
+		sourceColumn: [Value1]
+
+	/// Internal measure reference used by the SWITCH measures. Keep hidden.
+	column 'KPI Field'
+		isHidden
+		lineageTag: f8628abb-bb69-4f8d-8e87-c5e6f0d17bfb
+		sourceColumn: [Value2]
+
+	/// Sort order for the KPI list. Keep hidden.
+	column 'KPI Order'
+		isHidden
+		lineageTag: c9cc1c43-9cda-43f3-b99c-63442593c507
+		sourceColumn: [Value3]
+
+	partition 'KPI Selector' = calculated
+		mode: import
+		source =
+				{
+				    ("Net Revenue",      NAMEOF('_Measures'[Net Revenue]),      1),
+				    ("Total Orders",     NAMEOF('_Measures'[Total Orders]),     2),
+				    ("Total Customers",  NAMEOF('_Measures'[Total Customers]),  3),
+				    ("Gross Profit",     NAMEOF('_Measures'[Gross Profit]),     4),
+				    ("Avg Order Value",  NAMEOF('_Measures'[Average Order Value]), 5)
+				}
+

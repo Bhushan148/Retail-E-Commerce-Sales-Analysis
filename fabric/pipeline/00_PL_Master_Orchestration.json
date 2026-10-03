@@ -1,0 +1,103 @@
+{
+  "properties": {
+    "description": "Bronze (OLTP.xlsx -> dbo) -> Silver (standardize) -> Gold (star schema + data-quality gate) -> refresh semantic model 05_RPT_Retail_ECommerce_Sales_Analysis",
+    "activities": [
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "<01_NB_Bronze_Ingestion-id>",
+          "workspaceId": "00000000-0000-0000-0000-000000000000",
+          "sessionTag": "retail_etl"
+        },
+        "policy": {
+          "timeout": "0.00:30:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "ACT_NB_Bronze_Ingestion",
+        "dependsOn": []
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "<03_NB_Silver_Standardize-id>",
+          "workspaceId": "00000000-0000-0000-0000-000000000000",
+          "sessionTag": "retail_etl"
+        },
+        "policy": {
+          "timeout": "0.00:30:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "ACT_NB_Silver_Standardization",
+        "dependsOn": [
+          {
+            "activity": "ACT_NB_Bronze_Ingestion",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "<04_NB_Gold_Dimensional_Model-id>",
+          "workspaceId": "00000000-0000-0000-0000-000000000000",
+          "sessionTag": "retail_etl"
+        },
+        "policy": {
+          "timeout": "0.00:30:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "ACT_NB_Gold_Dimensional_Model",
+        "dependsOn": [
+          {
+            "activity": "ACT_NB_Silver_Standardization",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "PBISemanticModelRefresh",
+        "typeProperties": {
+          "method": "POST",
+          "groupId": "<workspace-id>",
+          "datasetId": "<semantic-model-id>",
+          "type": "Full",
+          "commitMode": "transactional",
+          "waitOnCompletion": true,
+          "operationType": "RefreshDataset"
+        },
+        "externalReferences": {
+          "connection": "<connection-id>"
+        },
+        "policy": {
+          "timeout": "0.01:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 120,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "ACT_SM_Refresh_Retail_Model",
+        "dependsOn": [
+          {
+            "activity": "ACT_NB_Gold_Dimensional_Model",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

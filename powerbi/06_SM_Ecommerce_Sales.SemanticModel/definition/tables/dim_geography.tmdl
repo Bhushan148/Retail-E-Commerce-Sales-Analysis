@@ -1,0 +1,97 @@
+table dim_geography
+	lineageTag: 45f2c730-b336-44c6-bb5d-cef97fb1dc45
+
+	/// Primary key. Joins to fact_sales_order_item[GeographyKey].
+	column GeographyKey
+		dataType: string
+		lineageTag: cbe57a56-8a93-4ae3-873c-2e588cd8fede
+		summarizeBy: none
+		sourceColumn: GeographyKey
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Country name. All data is US-based in this model.
+	column CountryName
+		dataType: string
+		lineageTag: b3b92c1b-79fb-412f-a77f-4bbac8f501b2
+		summarizeBy: none
+		sourceColumn: CountryName
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Two-letter state code. Available for geo-level filtering and drill-through.
+	column StateCode
+		dataType: string
+		lineageTag: 9e0452d2-60af-4d8b-9613-07615b1c569c
+		summarizeBy: none
+		sourceColumn: StateCode
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Full state name. Available as a filter on the Details page.
+	column StateName
+		dataType: string
+		lineageTag: 51fef638-be20-4c01-9010-991ebb63d16c
+		summarizeBy: none
+		sourceColumn: StateName
+
+		annotation SummarizationSetBy = Automatic
+
+	/// City name. Available for geo-level detail; not currently shown as a chart axis.
+	column CityName
+		dataType: string
+		lineageTag: cf6873e1-183f-42c8-85ae-908049a195f7
+		summarizeBy: none
+		sourceColumn: CityName
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Postal code. Available for granular geo-level filtering; not currently used in report visuals.
+	column PostalCode
+		dataType: string
+		lineageTag: 95ddffcb-ce50-4a36-b695-877bcd9ffc4d
+		summarizeBy: none
+		sourceColumn: PostalCode
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Geographic latitude coordinate. Available for map visuals; not currently used in report pages.
+	column Latitude
+		dataType: double
+		lineageTag: 946f60f4-b2b6-4282-abc2-7ba5c32e8ef9
+		summarizeBy: sum
+		sourceColumn: Latitude
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Geographic longitude coordinate. Available for map visuals; not currently used in report pages.
+	column Longitude
+		dataType: double
+		lineageTag: ed857df2-bdfe-4450-9943-ebb0765a8e51
+		summarizeBy: sum
+		sourceColumn: Longitude
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Foreign key to dim_region[RegionID]. Links each geography row to a US sales region (Midwest, Northeast, South, West) used in the Revenue by Region chart on the Overview page and the Region slicer on the Details page.
+	column RegionID
+		dataType: string
+		lineageTag: bc795232-7734-4151-a6bd-913481e466e3
+		summarizeBy: none
+		sourceColumn: RegionID
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_geography = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("<sql-endpoint-id>.datawarehouse.fabric.microsoft.com", "LH_Ecommerce"),
+				    gold_dim_geography = Source{[Schema="gold",Item="dim_geography"]}[Data]
+				in
+				    gold_dim_geography
+

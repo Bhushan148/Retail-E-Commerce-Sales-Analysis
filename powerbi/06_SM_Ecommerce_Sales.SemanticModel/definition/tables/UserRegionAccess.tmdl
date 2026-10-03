@@ -1,0 +1,65 @@
+table UserRegionAccess
+	lineageTag: 594683dc-4f3b-4017-a38b-358dee65549b
+
+	measure User = USERPRINCIPALNAME()
+		lineageTag: c26dd5c8-b3f2-418d-9635-17902791b7e3
+
+	column UserEmail
+		lineageTag: e9612621-c2ea-4e37-b326-f1be8773ebdb
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [UserEmail]
+
+		annotation SummarizationSetBy = Automatic
+
+	column UserName
+		lineageTag: a32ad8f4-47cb-4f73-9edc-4cbb3b07a540
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [UserName]
+
+		annotation SummarizationSetBy = Automatic
+
+	column RegionID
+		lineageTag: 469666a5-b808-4b7b-82cf-3cb47370c602
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [RegionID]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition UserRegionAccess = calculated
+		mode: import
+		source =
+				
+				DATATABLE (
+				    "UserEmail", STRING,
+				    "UserName", STRING,
+				    "RegionID", STRING,
+				    {
+				        -- 1 Region Access
+				        { "alex.carter.demo@gmail.com", "Alex Carter", "REG01" },
+				        { "priya.shah.demo@gmail.com", "Priya Shah", "REG03" },
+				
+				        -- 2 Region Access
+				        { "maven.analytics.demo@example.com", "Maven Analytics", "REG01" },
+				        { "maven.analytics.demo@example.com", "Maven Analytics", "REG03" },
+				
+				        { "emma.brooks.demo@gmail.com", "Emma Brooks", "REG02" },
+				        { "emma.brooks.demo@gmail.com", "Emma Brooks", "REG04" },
+				
+				        -- 3 Region Access
+				        { "bhushan.gawali.demo@example.com", "Bhushan Gawali", "REG01" },
+				        { "bhushan.gawali.demo@example.com", "Bhushan Gawali", "REG02" },
+				        { "bhushan.gawali.demo@example.com", "Bhushan Gawali", "REG04" },
+				
+				        -- All 4 Region Access
+				        { "sophia.turner.demo@gmail.com", "Sophia Turner", "REG01" },
+				        { "sophia.turner.demo@gmail.com", "Sophia Turner", "REG02" },
+				        { "sophia.turner.demo@gmail.com", "Sophia Turner", "REG03" },
+				        { "sophia.turner.demo@gmail.com", "Sophia Turner", "REG04" }
+				    }
+				)
+
+	annotation PBI_Id = fe0ddac078814833868ba5df02c96ba2
+

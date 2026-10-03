@@ -1,0 +1,73 @@
+table '_Detail Rows'
+	lineageTag: 58dcb28d-9dde-4628-a274-6f1dc26f55cf
+
+	column Section
+		lineageTag: b80cef12-2a55-4349-86e3-4aff12f95a3a
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Section]
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Row Label'
+		lineageTag: 9e998d0c-b555-492c-93ec-7ce3e5331765
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Row Label]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Sort
+		formatString: 0
+		lineageTag: 43070b21-4b83-4428-a507-8247eb4efb60
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Sort]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition '_Detail Rows' = calculated
+		mode: import
+		source =
+				
+				DATATABLE(
+				    "Section", STRING,
+				    "Row Label", STRING,
+				    "Sort", INTEGER,
+				    {
+				        {"Revenue", "Gross Sales Revenue", 1},
+				        {"Revenue", "(-) Discounts Applied", 2},
+				        {"Revenue", "(-) Returns & Refunds", 3},
+				        {"Revenue", "= Net Revenue", 4},
+				
+				        {"Profitability", "(-) Product Cost", 5},
+				        {"Profitability", "= Gross Profit", 6},
+				        {"Profitability", "Gross Profit Margin %", 7},
+				        {"Profitability", "Discount Rate %", 8},
+				        {"Profitability", "Return Impact %", 9},
+				
+				        {"Order Efficiency", "Total Orders", 10},
+				        {"Order Efficiency", "Average Order Value", 11},
+				        {"Order Efficiency", "Total Units Sold", 12},
+				        {"Order Efficiency", "Avg Units per Order", 13},
+				        {"Order Efficiency", "Net Revenue per Unit", 14},
+				        {"Order Efficiency", "Avg Order Discount $", 15},
+				        {"Order Efficiency", "Discount Penetration %", 16},
+				
+				        {"Customer", "Total Customers", 17},
+				        {"Customer", "New Customers", 18},
+				        {"Customer", "Returning Customers", 19},
+				        {"Customer", "High Value Customers", 20},
+				        {"Customer", "Repeat Customer Rate %", 21},
+				        {"Customer", "Customer Retention Rate %", 22},
+				        {"Customer", "Customer Lifetime Value", 23},
+				
+				        {"Fulfillment", "Delivery Rate %", 24},
+				        {"Fulfillment", "Return Rate %", 25},
+				        {"Fulfillment", "Cancellation Rate %", 26},
+				        {"Fulfillment", "Fulfillment Rate %", 27}
+				    }
+				)
+
+	annotation PBI_Id = 7b84bdd858a4428c8d00dcf20ec0c2ef
+

@@ -1,0 +1,121 @@
+table 'KPI Combo Selector'
+	lineageTag: 339c1ba6-1b8b-485b-ad0a-bd3f84c0f5f2
+
+	/// Returns the bar/column value for the KPI Combo chart based on the KPI View slicer selection.
+	measure 'Selected KPI Column Value' =
+			
+			VAR SelectedMetric =
+			    SELECTEDVALUE('KPI Combo Selector'[KPI View], "Revenue")
+			RETURN
+			    SWITCH(
+			        SelectedMetric,
+			        "Revenue",   [Net Revenue],
+			        "Profit",    [Gross Profit],
+			        "Orders",    [Total Orders],
+			        "Customers", [Total Customers],
+			        "AOV",       [Average Order Value],
+			        [Net Revenue]
+			    )
+		displayFolder: 8. Field Parameters\KPI Combo
+		lineageTag: c4d81bab-e9b1-482b-936f-a0b133576bc4
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	/// Returns the line (MoM %) value for the KPI Combo chart based on the KPI View slicer selection.
+	measure 'Selected KPI Line Value' =
+			
+			VAR SelectedMetric =
+			    SELECTEDVALUE('KPI Combo Selector'[KPI View], "Revenue")
+			RETURN
+			    SWITCH(
+			        SelectedMetric,
+			        "Revenue",   [Revenue MoM %],
+			        "Profit",    [Gross Profit Margin %],
+			        "Orders",    [Orders MoM %],
+			        "Customers", [Customers MoM %],
+			        "AOV",       [AOV MoM %],
+			        [Revenue MoM %]
+			    )
+		formatString: 0.00%;-0.00%;0.00%
+		displayFolder: 8. Field Parameters\KPI Combo
+		lineageTag: 78ab8f4e-8b72-4efd-83e7-290bdefa1369
+
+	/// Dynamic title for the KPI Combo chart that updates with the KPI View slicer selection.
+	measure 'KPI Combo Chart Title' =
+			
+			VAR SelectedMetric =
+			    SELECTEDVALUE('KPI Combo Selector'[KPI View], "Revenue")
+			RETURN
+			    SWITCH(
+			        SelectedMetric,
+			        "Revenue",   "Monthly Revenue with Growth %",
+			        "Profit",    "Monthly Gross Profit with Margin / Growth %",
+			        "Orders",    "Monthly Orders with Growth %",
+			        "Customers", "Monthly Customers with Growth %",
+			        "AOV",       "Monthly Average Order Value with Growth %",
+			        "Monthly Revenue with Growth %"
+			    )
+		displayFolder: 8. Field Parameters\KPI Combo
+		lineageTag: c954ebea-efde-4d7a-aa02-920ab582dc28
+
+	/// Dynamic title for the Channel breakdown visual that updates with the KPI View slicer selection.
+	measure 'KPI Channel Title' =
+			
+			VAR SelectedMetric =
+			    SELECTEDVALUE('KPI Combo Selector'[KPI View], "Revenue")
+			RETURN
+			    SWITCH(
+			        SelectedMetric,
+			        "Revenue", "Revenue by Sales Channel",
+			        "Profit", "Profit by Sales Channel",
+			        "Orders", "Orders by Sales Channel",
+			        "Customers", "Customers by Sales Channel",
+			        "AOV", "Average Order Value by Sales Channel",
+			        "Revenue by Sales Channel"
+			    )
+		displayFolder: 8. Field Parameters\KPI Combo
+		lineageTag: 147b5d68-ad6a-4be5-9a62-cbdd124faeee
+
+	/// Dynamic title for the Region breakdown visual that updates with the KPI View slicer selection.
+	measure 'KPI Region Title' =
+			
+			VAR SelectedMetric =
+			    SELECTEDVALUE('KPI Combo Selector'[KPI View], "Revenue")
+			RETURN
+			    SWITCH(
+			        SelectedMetric,
+			        "Revenue", "Revenue by Region",
+			        "Profit", "Profit by Region",
+			        "Orders", "Orders by Region",
+			        "Customers", "Customers by Region",
+			        "AOV", "Average Order Value by Region",
+			        "Revenue by Region"
+			    )
+		displayFolder: 8. Field Parameters\KPI Combo
+		lineageTag: ff07bbd9-5bdb-4160-b116-268fffb6f241
+
+	column 'KPI View'
+		lineageTag: c93b0591-a6bb-4ff2-8605-5c789dbbdf0b
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [KPI View]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'KPI Combo Selector' = calculated
+		mode: import
+		source =
+				
+				DATATABLE(
+				    "KPI View", STRING,
+				    {
+				        {"Revenue"},
+				        {"Profit"},
+				        {"Orders"},
+				        {"Customers"},
+				        {"AOV"}
+				    }
+				)
+
+	annotation PBI_Id = 9a21300fcde34c5681842d3265b3f629
+
