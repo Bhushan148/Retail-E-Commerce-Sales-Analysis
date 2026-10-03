@@ -9,7 +9,6 @@ The solution covers data ingestion, standardization, dimensional modeling, orche
 https://app.powerbi.com/view?r=eyJrIjoiZGNkYzI4NGItY2FiNS00Njg0LTg5NGUtY2UyOTZiNGFkNTNkIiwidCI6IjI1Y2UwMjYxLWJiZDYtNDljZC1hMWUyLTU0MjYwODg2ZDE1OSJ9&pageName=fa9b1cf475e064bbb51d
 
 ![Home](assets/screenshots/Home.png)
-![Overview](assets/screenshots/Overview.png)
 
 ## Challenge Context
 
